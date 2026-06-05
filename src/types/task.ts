@@ -8,6 +8,19 @@ export interface User {
 
 export type CompletionLevel = 'pending' | 'in_progress' | 'review' | 'completed';
 
+export type Recurrence = 'none' | 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly';
+
+export interface TaskStep {
+  id: string;
+  task_id: string;
+  title: string;
+  assigned_to: string | null;
+  step_order: number;
+  is_completed: boolean;
+  created_at: string;
+  assignee?: User;
+}
+
 /**
  * A single metadata entry — key is a short label, value is any JSON-safe
  * type (string, number, boolean, array, or nested object).
@@ -29,11 +42,13 @@ export interface Task {
   description: string;
   date_required: string;
   completion_level: CompletionLevel;
+  recurrence: Recurrence;
   metadata: MetadataRecord;
   created_by: string;
   created_at: string;
   updated_at: string;
   assignees?: User[];
+  steps?: TaskStep[];
 }
 
 export interface TaskAssignee {

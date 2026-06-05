@@ -5,18 +5,46 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { TaskBoard } from '@/components/task-board';
 import { UserSwitcher } from '@/components/user-switcher';
-import { Task, User } from '@/types/task';
-import { Shield } from 'lucide-react';
+import { updateUserRole, createStaffSlot, deleteStaffSlot, renameStaffSlot, adminResetPassword } from '@/app/auth/actions';
+import { toast } from 'sonner';
+import { Toaster } from '@/components/ui/sonner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Shield, ListChecks, Users, ArrowUpFromLine, ArrowDownToLine,
+  Plus, Trash2, Pencil, Check, X, KeyRound
+} from 'lucide-react';
+import type { Task, User } from '@/types/task';
+
+type Tab = 'tasks' | 'staff';
+
+type StaffSlot = {
+  id: string;
+  name: string;
+};
 
 export default function AdminDashboard() {
   const router = useRouter();
   const supabase = createClient();
+  const [activeTab, setActiveTab] = useState<Tab>('tasks');
   const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [staffSlots, setStaffSlots] = useState<StaffSlot[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<string>('all');
   const [loading, setLoading] = useState(true);
-  const [impersonatingUser, setImpersonatingUser] = useState<User | null>(null);
+
+  // Password reset state
+  const [resettingUserId, setResettingUserId] = useState<string | null>(null);
+  const [resetPassword, setResetPassword] = useState('');
+
+  // Staff slot management state
+  const [newSlotName, setNewSlotName] = useState('');
+  const [addingSlot, setAddingSlot] = useState(false);
+  const [editingSlot, setEditingSlot] = useState<string | null>(null);
+  const [editSlotName, setEditSlotName] = useState('');
 
   useEffect(() => {
     async function load() {
@@ -26,7 +54,6 @@ export default function AdminDashboard() {
         return;
       }
 
-      // Get current user profile — verify admin
       const { data: profile } = await supabase
         .from('users')
         .select('*')
@@ -40,7 +67,6 @@ export default function AdminDashboard() {
 
       setCurrentUser(profile as User);
 
-      // Get all users
       const { data: allUsers } = await supabase
         .from('users')
         .select('*')
@@ -48,7 +74,13 @@ export default function AdminDashboard() {
 
       if (allUsers) setUsers(allUsers as User[]);
 
-      // Get all tasks with assignees
+      const { data: slots } = await supabase
+        .from('staff_slots')
+        .select('id, name')
+        .order('name');
+
+      if (slots) setStaffSlots(slots);
+
       const { data: tasks } = await supabase
         .from('tasks')
         .select('*')
@@ -59,7 +91,6 @@ export default function AdminDashboard() {
         return;
       }
 
-      // Fetch assignees for each task
       const tasksWithAssignees: Task[] = await Promise.all(
         tasks.map(async (task) => {
           const { data: ta } = await supabase
@@ -84,7 +115,101 @@ export default function AdminDashboard() {
     load();
   }, [router, supabase]);
 
-  // Filter tasks by selected user
+  async function handleRoleToggle(targetUser: User) {
+    const newRole = targetUser.role === 'admin' ? 'staff' : 'admin';
+
+    if (targetUser.id === currentUser?.id && newRole === 'staff') {
+      toast.error("You can't demote yourself. Have another admin do it.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.set('userId', targetUser.id);
+    formData.set('role', newRole);
+
+    const result = await updateUserRole(formData);
+
+    if (result.error) {
+      toast.error(result.error);
+    } else {
+      toast.success(`${targetUser.name} is now ${newRole}`);
+      const { data: allUsers } = await supabase
+        .from('users')
+        .select('*')
+        .order('name');
+      if (allUsers) setUsers(allUsers as User[]);
+    }
+  }
+
+  async function handleResetPassword(userId: string) {
+    if (!resetPassword || resetPassword.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.set('userId', userId);
+    formData.set('password', resetPassword);
+
+    const result = await adminResetPassword(formData);
+
+    if (result.error) {
+      toast.error(result.error);
+    } else {
+      toast.success('Password updated successfully');
+      setResettingUserId(null);
+      setResetPassword('');
+    }
+  }
+
+  async function handleAddSlot() {
+    if (!newSlotName.trim()) return;
+    setAddingSlot(true);
+    const formData = new FormData();
+    formData.set('name', newSlotName);
+    const result = await createStaffSlot(formData);
+    setAddingSlot(false);
+    if (result.error) {
+      toast.error(result.error);
+    } else {
+      toast.success(`Staff slot "${newSlotName}" added`);
+      setNewSlotName('');
+      const { data: slots } = await supabase.from('staff_slots').select('id, name').order('name');
+      if (slots) setStaffSlots(slots);
+    }
+  }
+
+  async function handleDeleteSlot(slotId: string) {
+    const formData = new FormData();
+    formData.set('slotId', slotId);
+    const result = await deleteStaffSlot(formData);
+    if (result.error) {
+      toast.error(result.error);
+    } else {
+      toast.success('Staff slot removed');
+      const { data: slots } = await supabase.from('staff_slots').select('id, name').order('name');
+      if (slots) setStaffSlots(slots);
+    }
+  }
+
+  async function handleRenameSlot(slotId: string) {
+    if (!editSlotName.trim()) return;
+    const formData = new FormData();
+    formData.set('slotId', slotId);
+    formData.set('name', editSlotName);
+    const result = await renameStaffSlot(formData);
+    if (result.error) {
+      toast.error(result.error);
+    } else {
+      toast.success('Staff slot renamed');
+      setEditingSlot(null);
+      const { data: slots } = await supabase.from('staff_slots').select('id, name').order('name');
+      if (slots) setStaffSlots(slots);
+    }
+  }
+
+  const takenNames = users.map(u => u.name).filter(Boolean);
+
   const filteredTasks =
     selectedUserId === 'all'
       ? allTasks
@@ -106,45 +231,297 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-5">
+      <Toaster richColors position="top-center" />
+
       {/* Admin banner */}
       <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-amber-50 border border-amber-200">
         <Shield size={18} className="text-amber-600 shrink-0" />
-        <div>
-          <p className="text-sm font-medium text-amber-800">Admin View</p>
-          <p className="text-xs text-amber-600">
-            You see all tasks. Use the filter below to view a specific staff member's tasks.
-          </p>
-        </div>
+        <p className="text-sm text-amber-800">
+          <span className="font-medium">Admin View</span> — You have full access to all tasks and staff management.
+        </p>
       </div>
 
-      {/* User switcher */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-        <div className="w-full sm:w-72">
-          <UserSwitcher
+      {/* Tab bar */}
+      <div className="flex gap-1 border-b border-slate-200">
+        <button
+          onClick={() => setActiveTab('tasks')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'tasks'
+              ? 'border-slate-900 text-slate-900'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <ListChecks size={16} />
+          Tasks
+        </button>
+        <button
+          onClick={() => setActiveTab('staff')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'staff'
+              ? 'border-slate-900 text-slate-900'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <Users size={16} />
+          Staff ({users.length})
+        </button>
+      </div>
+
+      {/* Tasks tab */}
+      {activeTab === 'tasks' && (
+        <>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="w-full sm:w-72">
+              <UserSwitcher
+                users={users}
+                selectedUserId={selectedUserId}
+                onChange={setSelectedUserId}
+              />
+            </div>
+            <div className="text-xs text-slate-500">
+              {selectedUserId === 'all'
+                ? `Showing all ${allTasks.length} tasks across ${users.length} users`
+                : `Showing ${filteredTasks.length} tasks assigned to ${selectedUser?.name ?? 'selected user'}`}
+            </div>
+          </div>
+
+          <TaskBoard
+            tasks={filteredTasks}
             users={users}
-            selectedUserId={selectedUserId}
-            onChange={setSelectedUserId}
+            currentUserId={currentUser.id}
+            isAdmin={true}
+            title={
+              selectedUserId === 'all'
+                ? 'All Tasks'
+                : `Tasks: ${selectedUser?.name ?? 'Unknown User'}`
+            }
           />
-        </div>
-        <div className="text-xs text-slate-500">
-          {selectedUserId === 'all'
-            ? `Showing all ${allTasks.length} tasks across ${users.length} users`
-            : `Showing ${filteredTasks.length} tasks assigned to ${selectedUser?.name ?? 'selected user'}`}
-        </div>
-      </div>
+        </>
+      )}
 
-      {/* Task board */}
-      <TaskBoard
-        tasks={filteredTasks}
-        users={users}
-        currentUserId={currentUser.id}
-        isAdmin={true}
-        title={
-          selectedUserId === 'all'
-            ? 'All Tasks'
-            : `Tasks: ${selectedUser?.name ?? 'Unknown User'}`
-        }
-      />
+      {/* Staff tab */}
+      {activeTab === 'staff' && (
+        <div className="space-y-6">
+
+          {/* ---- Existing Users Table ---- */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Registered Staff ({users.length})</CardTitle>
+              <CardDescription>
+                Manage user roles. Staff sign up with their own email, then pick their name on first login.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50/50">
+                      <th className="text-left py-3 px-4 font-medium text-slate-500">Name</th>
+                      <th className="text-left py-3 px-4 font-medium text-slate-500">Email</th>
+                      <th className="text-left py-3 px-4 font-medium text-slate-500">Role</th>
+                      <th className="text-right py-3 px-4 font-medium text-slate-500">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.map((u) => (
+                      <tr key={u.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td className="py-3 px-4 font-medium text-slate-900">{u.name}</td>
+                        <td className="py-3 px-4 text-slate-500">{u.email}</td>
+                        <td className="py-3 px-4">
+                          <Badge
+                            variant={u.role === 'admin' ? 'default' : 'secondary'}
+                            className={
+                              u.role === 'admin'
+                                ? 'bg-amber-100 text-amber-800 hover:bg-amber-100 border-0'
+                                : 'bg-slate-100 text-slate-600 hover:bg-slate-100 border-0'
+                            }
+                          >
+                            {u.role === 'admin' ? (
+                              <span className="flex items-center gap-1">
+                                <Shield size={12} />
+                                Admin
+                              </span>
+                            ) : (
+                              'Staff'
+                            )}
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {resettingUserId === u.id ? (
+                              <div className="flex items-center gap-1.5">
+                                <Input
+                                  type="password"
+                                  placeholder="New password"
+                                  value={resetPassword}
+                                  onChange={(e) => setResetPassword(e.target.value)}
+                                  className="h-8 w-36 text-xs"
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleResetPassword(u.id);
+                                    if (e.key === 'Escape') { setResettingUserId(null); setResetPassword(''); }
+                                  }}
+                                />
+                                <Button size="sm" variant="ghost" onClick={() => handleResetPassword(u.id)}>
+                                  <Check size={14} className="text-green-600" />
+                                </Button>
+                                <Button size="sm" variant="ghost" onClick={() => { setResettingUserId(null); setResetPassword(''); }}>
+                                  <X size={14} className="text-slate-400" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => { setResettingUserId(u.id); setResetPassword(''); }}
+                                  disabled={u.id === currentUser?.id}
+                                  className="text-xs text-slate-400 hover:text-slate-700"
+                                  title="Reset password"
+                                >
+                                  <KeyRound size={14} />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleRoleToggle(u)}
+                                  disabled={u.id === currentUser?.id}
+                                  className="text-xs"
+                                >
+                                  {u.id === currentUser?.id ? (
+                                    'Current User'
+                                  ) : u.role === 'admin' ? (
+                                    <span className="flex items-center gap-1">
+                                      <ArrowDownToLine size={12} />
+                                      Demote to Staff
+                                    </span>
+                                  ) : (
+                                    <span className="flex items-center gap-1">
+                                      <ArrowUpFromLine size={12} />
+                                      Promote to Admin
+                                    </span>
+                                  )}
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* ---- Staff Slot Management ---- */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Staff Name Slots ({staffSlots.length})</CardTitle>
+              <CardDescription>
+                These are the names new staff can pick when they first log in. Add, rename, or delete slots.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Add new slot */}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="e.g. Mrs. Cohen"
+                  value={newSlotName}
+                  onChange={(e) => setNewSlotName(e.target.value)}
+                  className="max-w-xs"
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleAddSlot(); }}
+                />
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleAddSlot}
+                  disabled={addingSlot || !newSlotName.trim()}
+                  className="bg-slate-900 hover:bg-slate-800"
+                >
+                  <Plus size={14} className="mr-1" />
+                  Add Slot
+                </Button>
+              </div>
+
+              {/* Slots list */}
+              <div className="grid gap-1.5">
+                {staffSlots.map((slot) => {
+                  const isTaken = takenNames.includes(slot.name);
+                  const isEditing = editingSlot === slot.id;
+
+                  return (
+                    <div
+                      key={slot.id}
+                      className={`flex items-center justify-between px-3 py-2 rounded-md border text-sm ${
+                        isTaken
+                          ? 'bg-slate-50 border-slate-200'
+                          : 'bg-white border-dashed border-slate-300'
+                      }`}
+                    >
+                      {isEditing ? (
+                        <div className="flex items-center gap-2 flex-1">
+                          <Input
+                            value={editSlotName}
+                            onChange={(e) => setEditSlotName(e.target.value)}
+                            className="h-8 text-sm max-w-xs"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleRenameSlot(slot.id);
+                              if (e.key === 'Escape') setEditingSlot(null);
+                            }}
+                          />
+                          <Button size="sm" variant="ghost" onClick={() => handleRenameSlot(slot.id)}>
+                            <Check size={14} className="text-green-600" />
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setEditingSlot(null)}>
+                            <X size={14} className="text-slate-400" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-slate-900">{slot.name}</span>
+                            {isTaken && (
+                              <Badge variant="secondary" className="bg-green-50 text-green-700 border-0 text-xs">
+                                Assigned
+                              </Badge>
+                            )}
+                            {!isTaken && (
+                              <Badge variant="secondary" className="bg-slate-50 text-slate-400 border-0 text-xs">
+                                Available
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => { setEditingSlot(slot.id); setEditSlotName(slot.name); }}
+                              className="text-slate-400 hover:text-slate-700"
+                            >
+                              <Pencil size={14} />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleDeleteSlot(slot.id)}
+                              className="text-slate-400 hover:text-red-600"
+                            >
+                              <Trash2 size={14} />
+                            </Button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+        </div>
+      )}
     </div>
   );
 }

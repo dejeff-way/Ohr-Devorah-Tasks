@@ -14,9 +14,14 @@ const taskSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional().default(''),
   date_required: z.string().min(1, 'Date is required'),
+  recurrence: z.enum(['none', 'daily', 'weekly', 'biweekly', 'monthly', 'quarterly', 'yearly']).optional().default('none'),
   completion_level: z.enum(['pending', 'in_progress', 'review', 'completed']).default('pending'),
   assignee_ids: z.array(z.string()).min(1, 'At least one assignee is required'),
   metadata: z.array(metadataEntrySchema).optional().default([]),
+  steps: z.array(z.object({
+    title: z.string().min(1, 'Step title is required'),
+    assigned_to: z.string().optional().default(''),
+  })).optional().default([]),
 });
 
 function formatZodError(error: z.ZodError): string {
@@ -66,6 +71,7 @@ export async function createTask(formData: FormData) {
     completion_level: formData.get('completion_level') || 'pending',
     assignee_ids: JSON.parse((formData.get('assignee_ids') as string) || '[]'),
     metadata,
+    steps: JSON.parse((formData.get('steps') as string) || '[]'),
   };
 
   const parsed = taskSchema.safeParse(raw);
@@ -73,11 +79,11 @@ export async function createTask(formData: FormData) {
     return { error: formatZodError(parsed.error) };
   }
 
-  const { title, description, date_required, completion_level, assignee_ids } = parsed.data;
+  const { title, description, date_required, recurrence, completion_level, assignee_ids, steps } = parsed.data;
 
   const { data: task, error: taskError } = await supabase
     .from('tasks')
-    .insert({ title, description, date_required, completion_level, created_by: user.id, metadata })
+    .insert({ title, description, date_required, recurrence, completion_level, created_by: user.id, metadata })
     .select()
     .single();
 
@@ -93,6 +99,22 @@ export async function createTask(formData: FormData) {
     .insert(assigneeRows);
 
   if (assignError) return { error: assignError.message };
+
+  // Insert steps
+  if (steps && steps.length > 0) {
+    const stepRows = steps.map((step, i) => ({
+      task_id: task.id,
+      title: step.title,
+      assigned_to: step.assigned_to || null,
+      step_order: i,
+    }));
+
+    const { error: stepsError } = await supabase
+      .from('task_steps')
+      .insert(stepRows);
+
+    if (stepsError) return { error: stepsError.message };
+  }
 
   revalidatePath('/dashboard');
   return { success: true, task };

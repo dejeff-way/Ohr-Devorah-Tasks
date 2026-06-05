@@ -21,9 +21,8 @@ import {
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { MultiSelect } from '@/components/multi-select';
-import { MetadataFields } from '@/components/metadata-fields';
 import { createTask, updateTask } from '@/app/dashboard/actions';
-import { Task, User, MetadataEntry } from '@/types/task';
+import { Task, User } from '@/types/task';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -55,17 +54,11 @@ export function TaskForm({ task, users, onSuccess }: TaskFormProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>(
     task?.assignees?.map((a) => a.id) ?? []
   );
-  const [metadata, setMetadata] = useState<MetadataEntry[]>(
-    task?.metadata ?? []
-  );
 
   // Pre-populate assignees if editing
   useEffect(() => {
     if (task?.assignees) {
       setSelectedIds(task.assignees.map((a) => a.id));
-    }
-    if (task?.metadata) {
-      setMetadata(task.metadata);
     }
   }, [task]);
 
@@ -79,7 +72,7 @@ export function TaskForm({ task, users, onSuccess }: TaskFormProps) {
     formData.set('date_required', format(dateRequired, 'yyyy-MM-dd'));
     formData.set('completion_level', completionLevel);
     formData.set('assignee_ids', JSON.stringify(selectedIds));
-    formData.set('metadata', JSON.stringify(metadata));
+    formData.set('metadata', JSON.stringify([]));
 
     let result;
     if (isEditing && task) {
@@ -195,14 +188,6 @@ export function TaskForm({ task, users, onSuccess }: TaskFormProps) {
         {selectedIds.length === 0 && (
           <p className="text-xs text-amber-600">At least one assignee is required</p>
         )}
-      </div>
-
-      {/* Custom Attributes — dynamic key-value metadata */}
-      <div className="pt-2 border-t border-slate-100">
-        <MetadataFields
-          entries={metadata}
-          onChange={setMetadata}
-        />
       </div>
 
       <div className="flex justify-end gap-2 pt-2">

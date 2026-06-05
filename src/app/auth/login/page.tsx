@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { login, seedAdmin, seedStaffUsers } from '@/app/auth/actions';
+import { login, signUp } from '@/app/auth/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,7 +17,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [seeding, setSeeding] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -28,34 +28,26 @@ export default function LoginPage() {
     formData.set('email', email);
     formData.set('password', password);
 
-    const result = await login(formData);
-    setLoading(false);
-
-    if (result.error) {
-      setError(result.error);
-    } else {
-      router.push('/dashboard');
-    }
-  }
-
-  async function handleSeed() {
-    setSeeding(true);
-    try {
-      const adminResult = await seedAdmin();
-      if (adminResult.error) {
-        toast.error(adminResult.error);
+    if (isRegistering) {
+      const result = await signUp(formData);
+      setLoading(false);
+      if (result.error) {
+        setError(result.error);
       } else {
-        toast.success(adminResult.message);
+        toast.success(result.message ?? 'Account created! Check your email.');
+        setIsRegistering(false);
       }
-
-      const staffResults = await seedStaffUsers();
-      const created = staffResults.filter((r) => r.status === 'created').length;
-      const existing = staffResults.filter((r) => r.status === 'already exists').length;
-      toast.success(`${created} staff created, ${existing} already exist`);
-    } catch {
-      toast.error('Seeding failed');
+    } else {
+      const result = await login(formData);
+      setLoading(false);
+      if (result.error) {
+        setError(result.error);
+      } else if (result.needsName) {
+        router.push('/auth/pick-name');
+      } else {
+        router.push('/dashboard');
+      }
     }
-    setSeeding(false);
   }
 
   return (
@@ -70,7 +62,7 @@ export default function LoginPage() {
             Ohr Devora
           </CardTitle>
           <CardDescription className="text-slate-500">
-            Staff Task Management Portal
+            {isRegistering ? 'Create your account' : 'Staff Task Management Portal'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -82,7 +74,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="you@ohrdevora.org"
+                placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -100,6 +92,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                minLength={6}
                 className="h-10 border-slate-300 focus:border-slate-900 focus:ring-slate-900"
               />
             </div>
@@ -113,23 +106,40 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full h-10 bg-slate-900 hover:bg-slate-800 text-white font-medium"
             >
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading
+                ? 'Please wait...'
+                : isRegistering
+                  ? 'Create Account'
+                  : 'Sign in'}
             </Button>
           </form>
         </CardContent>
         <Separator className="mx-6 w-auto" />
-        <CardFooter className="flex flex-col pt-4 pb-6">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSeed}
-            disabled={seeding}
-            className="w-full text-xs text-slate-500 border-slate-200 hover:bg-slate-100"
-          >
-            {seeding ? 'Seeding...' : 'Seed Admin & Staff Accounts'}
-          </Button>
-          <p className="mt-3 text-xs text-slate-400 text-center">
-            First time? Click above to seed accounts, then sign in.
+        <CardFooter className="pt-4 pb-6 justify-center">
+          <p className="text-xs text-slate-400 text-center">
+            {isRegistering ? (
+              <>
+                Already have an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => { setIsRegistering(false); setError(''); }}
+                  className="text-slate-700 font-medium hover:underline"
+                >
+                  Sign in
+                </button>
+              </>
+            ) : (
+              <>
+                New staff member?{' '}
+                <button
+                  type="button"
+                  onClick={() => { setIsRegistering(true); setError(''); }}
+                  className="text-slate-700 font-medium hover:underline"
+                >
+                  Create an account
+                </button>
+              </>
+            )}
           </p>
         </CardFooter>
       </Card>
