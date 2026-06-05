@@ -3,7 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 
 const publicPaths = ['/auth/login', '/auth/callback'];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (publicPaths.some((p) => pathname.startsWith(p))) {
