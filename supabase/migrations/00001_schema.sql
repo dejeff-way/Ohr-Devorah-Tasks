@@ -37,6 +37,17 @@ CREATE TABLE IF NOT EXISTS public.tasks (
 
 ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
 
+-- 3. TASK ASSIGNEES (junction table)
+CREATE TABLE IF NOT EXISTS public.task_assignees (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  task_id UUID NOT NULL REFERENCES public.tasks(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  UNIQUE(task_id, user_id)
+);
+
+ALTER TABLE public.task_assignees ENABLE ROW LEVEL SECURITY;
+
+-- 4. TASK POLICIES (after all tables exist)
 -- Admins can read all tasks
 CREATE POLICY "Admins can read all tasks"
   ON public.tasks FOR SELECT
@@ -78,16 +89,7 @@ CREATE POLICY "Admins can delete tasks"
     OR created_by = auth.uid()
   );
 
--- 3. TASK ASSIGNEES (junction table)
-CREATE TABLE IF NOT EXISTS public.task_assignees (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  task_id UUID NOT NULL REFERENCES public.tasks(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  UNIQUE(task_id, user_id)
-);
-
-ALTER TABLE public.task_assignees ENABLE ROW LEVEL SECURITY;
-
+-- 5. TASK ASSIGNEE POLICIES
 -- Users can read assignments for tasks they can see
 CREATE POLICY "Users can read own task assignments"
   ON public.task_assignees FOR SELECT
@@ -109,7 +111,7 @@ CREATE POLICY "Admins can delete assignments"
     EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin')
   );
 
--- 4. AUTO-CREATE PUBLIC USER ON AUTH.SIGNUP
+-- 6. AUTO-CREATE PUBLIC USER ON AUTH.SIGNUP
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -129,7 +131,7 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- 5. UPDATED_AT TRIGGER
+-- 7. UPDATED_AT TRIGGER
 CREATE OR REPLACE FUNCTION public.update_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
