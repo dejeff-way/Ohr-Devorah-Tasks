@@ -1,10 +1,25 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 export async function GET() {
-  const admin = createAdminClient();
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  }
 
-  // Get all auth users
+  const { data: profile } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile || profile.role !== 'admin') {
+    return NextResponse.json({ error: 'Admins only' }, { status: 403 });
+  }
+
+  const admin = createAdminClient();
   const { data: authUsers, error: authError } = await admin.auth.admin.listUsers();
 
   if (authError) {
@@ -13,16 +28,16 @@ export async function GET() {
 
   const results: { email: string; name: string; role: string; status: string }[] = [];
 
-  for (const user of authUsers.users) {
-    const name = user.user_metadata?.name ?? user.email?.split('@')[0] ?? 'Unknown';
-    const role = user.user_metadata?.role ?? 'staff';
+  for (const u of authUsers.users) {
+    const name = u.user_metadata?.name ?? u.email?.split('@')[0] ?? 'Unknown';
+    const role = u.user_metadata?.role ?? 'staff';
 
     const { error: insertError } = await admin
       .from('users')
-      .upsert({ id: user.id, email: user.email, name, role }, { onConflict: 'id' });
+      .upsert({ id: u.id, email: u.email, name, role }, { onConflict: 'id' });
 
     results.push({
-      email: user.email ?? 'unknown',
+      email: u.email ?? 'unknown',
       name,
       role,
       status: insertError ? `error: ${insertError.message}` : 'ok',

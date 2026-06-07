@@ -132,6 +132,7 @@ export async function updateTask(taskId: string, formData: FormData) {
     title: formData.get('title'),
     description: formData.get('description'),
     date_required: formData.get('date_required'),
+    recurrence: formData.get('recurrence') || 'none',
     completion_level: formData.get('completion_level'),
     assignee_ids: JSON.parse((formData.get('assignee_ids') as string) || '[]'),
     metadata,
@@ -142,11 +143,11 @@ export async function updateTask(taskId: string, formData: FormData) {
     return { error: formatZodError(parsed.error) };
   }
 
-  const { title, description, date_required, completion_level, assignee_ids } = parsed.data;
+  const { title, description, date_required, recurrence, completion_level, assignee_ids } = parsed.data;
 
   const { error: taskError } = await supabase
     .from('tasks')
-    .update({ title, description, date_required, completion_level, metadata })
+    .update({ title, description, date_required, recurrence, completion_level, metadata })
     .eq('id', taskId);
 
   if (taskError) return { error: taskError.message };

@@ -15,6 +15,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
@@ -29,13 +30,15 @@ export default function LoginPage() {
     formData.set('password', password);
 
     if (isRegistering) {
+      formData.set('invite_code', inviteCode);
       const result = await signUp(formData);
       setLoading(false);
       if (result.error) {
         setError(result.error);
       } else {
-        toast.success(result.message ?? 'Account created! Check your email.');
+        toast.success(result.message ?? 'Account created! Sign in with your email and password.');
         setIsRegistering(false);
+        setInviteCode('');
       }
     } else {
       const result = await login(formData);
@@ -62,7 +65,7 @@ export default function LoginPage() {
             Ohr Devora
           </CardTitle>
           <CardDescription className="text-slate-500">
-            {isRegistering ? 'Create your account' : 'Staff Task Management Portal'}
+            {isRegistering ? 'Create your staff account' : 'Staff Task Management Portal'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -96,6 +99,22 @@ export default function LoginPage() {
                 className="h-10 border-slate-300 focus:border-slate-900 focus:ring-slate-900"
               />
             </div>
+            {isRegistering && (
+              <div className="space-y-2">
+                <Label htmlFor="invite_code" className="text-sm font-medium text-slate-700">
+                  Invite Code
+                </Label>
+                <Input
+                  id="invite_code"
+                  type="text"
+                  placeholder="Enter code from your admin"
+                  value={inviteCode}
+                  onChange={(e) => setInviteCode(e.target.value)}
+                  required
+                  className="h-10 border-slate-300 focus:border-slate-900 focus:ring-slate-900"
+                />
+              </div>
+            )}
             {error && (
               <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
                 {error}
