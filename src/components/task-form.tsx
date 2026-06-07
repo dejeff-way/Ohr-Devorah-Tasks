@@ -93,7 +93,6 @@ export function TaskForm({ task, users, onSuccess }: TaskFormProps) {
         setDateRequired(new Date());
         setCompletionLevel('pending');
         setSelectedIds([]);
-        setMetadata([]);
       }
       onSuccess?.();
     }
