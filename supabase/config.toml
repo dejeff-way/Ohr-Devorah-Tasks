@@ -1,0 +1,11 @@
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public", "supabase_migrations"]
+
+[db]
+port = 5432
+major_version = 15
+
+[auth]
+enabled = true

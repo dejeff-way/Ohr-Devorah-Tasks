@@ -14,6 +14,7 @@ import {
   X,
   Users,
   Shield,
+  CalendarDays,
 } from 'lucide-react';
 import { User } from '@/types/task';
 
@@ -35,6 +36,12 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
       href: '/dashboard',
       icon: ListChecks,
       active: pathname === '/dashboard',
+    },
+    {
+      label: 'Calendar',
+      href: '/dashboard/calendar',
+      icon: CalendarDays,
+      active: pathname === '/dashboard/calendar',
     },
     ...(isAdmin
       ? [
@@ -157,7 +164,11 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
               <Menu size={22} />
             </button>
             <h2 className="text-lg font-semibold text-slate-900 hidden sm:block">
-              {pathname === '/dashboard/admin' ? 'Admin Panel' : 'Task Dashboard'}
+              {pathname === '/dashboard/admin'
+                ? 'Admin Panel'
+                : pathname === '/dashboard/calendar'
+                  ? 'Calendar'
+                  : 'Task Dashboard'}
             </h2>
           </div>
           <div className="flex items-center gap-2">
