@@ -17,8 +17,21 @@ import {
   addDays,
   addWeeks,
 } from 'date-fns';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import type { Task, User, CompletionLevel } from '@/types/task';
 
 interface CalendarViewProps {
@@ -87,26 +100,129 @@ function expandRecurringTasks(
 
 function TaskPill({ task, compact }: { task: Task; compact: boolean }) {
   const colors = STATUS_COLORS[task.completion_level];
+  const [detailOpen, setDetailOpen] = useState(false);
+  const dateObj = new Date(task.date_required);
 
-  if (compact) {
-    return (
-      <span
-        className={`inline-block w-2 h-2 rounded-full ${colors.dot} flex-shrink-0`}
-        title={`${task.title} — ${task.completion_level.replace('_', ' ')}`}
-      />
-    );
-  }
-
-  return (
+  const pillContent = (
     <div
-      className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-xs truncate border ${colors.bg} ${colors.text} border-current/20 cursor-default`}
-      title={`${task.title} — ${task.completion_level.replace('_', ' ')}`}
+      className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-xs truncate border cursor-pointer hover:border-secondary transition-colors ${colors.bg} ${colors.text} border-current/20`}
+      onClick={(e) => { e.stopPropagation(); setDetailOpen(true); }}
     >
       <span className={`w-1.5 h-1.5 rounded-full ${colors.dot} flex-shrink-0`} />
       <span className={`truncate ${task.completion_level === 'completed' ? 'line-through opacity-70' : ''}`}>
         {task.title}
       </span>
     </div>
+  );
+
+  if (compact) {
+    return (
+      <span
+        className={`inline-block w-2 h-2 rounded-full ${colors.dot} flex-shrink-0 cursor-pointer hover:scale-125 transition-transform`}
+        title={`${task.title} — ${task.completion_level.replace('_', ' ')}`}
+      />
+    );
+  }
+
+  return (
+    <>
+      <Popover>
+        <PopoverTrigger>
+          {pillContent}
+        </PopoverTrigger>
+        <PopoverContent side="top" align="start" className="w-64 p-3">
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5">
+              <span className={`w-2 h-2 rounded-full ${colors.dot} flex-shrink-0`} />
+              <Badge variant="outline" className="text-[10px] font-medium px-1.5 py-0">
+                {task.completion_level.replace('_', ' ')}
+              </Badge>
+              {task.recurrence !== 'none' && (
+                <span className="text-[10px] text-muted-foreground">{task.recurrence}</span>
+              )}
+            </div>
+            <p className="text-sm font-extrabold text-foreground leading-snug">{task.title}</p>
+            {task.description && (
+              <p className="text-xs text-muted-foreground line-clamp-2">{task.description}</p>
+            )}
+            {task.assignees && task.assignees.length > 0 && (
+              <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                <Users size={11} />
+                {task.assignees.map((a) => a.name).join(', ')}
+              </div>
+            )}
+            <p className="text-[11px] text-muted-foreground">
+              Due {format(dateObj, 'EEE, MMM d')}
+            </p>
+            <p className="text-[11px] font-semibold text-secondary">Click for full details</p>
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+        <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex items-center gap-2 mb-1">
+              <span className={`h-2.5 w-2.5 rounded-full ${colors.dot}`} />
+              <Badge variant="outline" className={`text-xs font-medium px-2 py-0 ${colors.bg} ${colors.text}`}>
+                {task.completion_level.replace('_', ' ')}
+              </Badge>
+              {task.recurrence !== 'none' && (
+                <Badge variant="outline" className="text-xs bg-muted text-muted-foreground">
+                  {task.recurrence}
+                </Badge>
+              )}
+            </div>
+            <DialogTitle className="text-xl font-extrabold tracking-tight">{task.title}</DialogTitle>
+            <DialogDescription className="text-sm font-semibold text-muted-foreground">
+              Due {format(dateObj, 'EEEE, MMMM d, yyyy')}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5 mt-2">
+            {task.description && (
+              <div>
+                <p className="text-xs font-extrabold uppercase tracking-wide text-muted-foreground mb-1">Description</p>
+                <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{task.description}</p>
+              </div>
+            )}
+
+            {task.assignees && task.assignees.length > 0 && (
+              <div>
+                <p className="text-xs font-extrabold uppercase tracking-wide text-muted-foreground mb-2">Assigned to</p>
+                <div className="flex flex-wrap gap-2">
+                  {task.assignees.map((a) => (
+                    <div key={a.id} className="flex items-center gap-2 rounded-xl border-2 border-border bg-muted px-3 py-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-extrabold text-primary-foreground">
+                        {a.name.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="text-sm font-extrabold text-foreground">{a.name}</p>
+                        <p className="text-[11px] font-semibold text-muted-foreground">{a.role}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {task.metadata && task.metadata.length > 0 && (
+              <div>
+                <p className="text-xs font-extrabold uppercase tracking-wide text-muted-foreground mb-2">Details</p>
+                <div className="space-y-1">
+                  {task.metadata.map((m, i) => (
+                    <div key={i} className="flex gap-2 text-sm">
+                      <span className="font-extrabold text-muted-foreground">{m.key}:</span>
+                      <span className="text-foreground">{String(m.value)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
