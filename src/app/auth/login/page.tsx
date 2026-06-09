@@ -54,24 +54,24 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <Toaster richColors position="top-center" />
-      <Card className="w-full max-w-md shadow-lg border-slate-200">
+      <Card className="w-full max-w-md shadow-lg border-border">
         <CardHeader className="space-y-1 text-center pb-4">
-          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-slate-900">
-            <span className="text-xl font-bold text-white">OD</span>
+          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-primary">
+            <span className="text-xl font-bold text-primary-foreground">OD</span>
           </div>
-          <CardTitle className="text-2xl font-semibold tracking-tight text-slate-900">
+          <CardTitle className="text-2xl font-semibold tracking-tight text-foreground">
             Ohr Devora
           </CardTitle>
-          <CardDescription className="text-slate-500">
+          <CardDescription className="text-muted-foreground">
             {isRegistering ? 'Create your staff account' : 'Staff Task Management Portal'}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium text-slate-700">
+              <Label htmlFor="email" className="text-sm font-medium text-secondary-foreground">
                 Email
               </Label>
               <Input
@@ -81,11 +81,11 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="h-10 border-slate-300 focus:border-slate-900 focus:ring-slate-900"
+                className="h-10 border-border focus:border-border focus:ring-foreground"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium text-slate-700">
+              <Label htmlFor="password" className="text-sm font-medium text-secondary-foreground">
                 Password
               </Label>
               <Input
@@ -96,12 +96,12 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
-                className="h-10 border-slate-300 focus:border-slate-900 focus:ring-slate-900"
+                className="h-10 border-border focus:border-border focus:ring-foreground"
               />
             </div>
             {isRegistering && (
               <div className="space-y-2">
-                <Label htmlFor="invite_code" className="text-sm font-medium text-slate-700">
+                <Label htmlFor="invite_code" className="text-sm font-medium text-secondary-foreground">
                   Invite Code
                 </Label>
                 <Input
@@ -111,7 +111,7 @@ export default function LoginPage() {
                   value={inviteCode}
                   onChange={(e) => setInviteCode(e.target.value)}
                   required
-                  className="h-10 border-slate-300 focus:border-slate-900 focus:ring-slate-900"
+                  className="h-10 border-border focus:border-border focus:ring-foreground"
                 />
               </div>
             )}
@@ -123,7 +123,7 @@ export default function LoginPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-10 bg-slate-900 hover:bg-slate-800 text-white font-medium"
+              className="w-full h-10 bg-primary hover:bg-secondary text-primary-foreground font-medium"
             >
               {loading
                 ? 'Please wait...'
@@ -135,14 +135,14 @@ export default function LoginPage() {
         </CardContent>
         <Separator className="mx-6 w-auto" />
         <CardFooter className="pt-4 pb-6 justify-center">
-          <p className="text-xs text-slate-400 text-center">
+          <p className="text-xs text-muted-foreground text-center">
             {isRegistering ? (
               <>
                 Already have an account?{' '}
                 <button
                   type="button"
                   onClick={() => { setIsRegistering(false); setError(''); }}
-                  className="text-slate-700 font-medium hover:underline"
+                  className="text-secondary-foreground font-medium hover:underline"
                 >
                   Sign in
                 </button>
@@ -153,7 +153,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => { setIsRegistering(true); setError(''); }}
-                  className="text-slate-700 font-medium hover:underline"
+                  className="text-secondary-foreground font-medium hover:underline"
                 >
                   Create an account
                 </button>

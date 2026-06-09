@@ -33,7 +33,7 @@ interface TaskBoardProps {
 }
 
 const columns: { key: CompletionLevel; label: string; color: string }[] = [
-  { key: 'pending', label: 'Pending', color: 'border-t-slate-400' },
+  { key: 'pending', label: 'Pending', color: 'border-t-muted-foreground' },
   { key: 'in_progress', label: 'In Progress', color: 'border-t-blue-500' },
   { key: 'review', label: 'Review', color: 'border-t-amber-500' },
   { key: 'completed', label: 'Completed', color: 'border-t-emerald-500' },
@@ -75,16 +75,16 @@ export function TaskBoard({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           {title && (
-            <h2 className="text-xl font-semibold text-slate-900">{title}</h2>
+            <h2 className="text-xl font-semibold text-foreground">{title}</h2>
           )}
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-muted-foreground">
             {tasks.length} task{tasks.length !== 1 ? 's' : ''}
           </p>
         </div>
 
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger>
-            <Button className="bg-slate-900 hover:bg-slate-800 text-white gap-2">
+            <Button className="bg-primary hover:bg-secondary text-primary-foreground gap-2">
               <Plus size={16} />
               New Task
             </Button>
@@ -107,16 +107,16 @@ export function TaskBoard({
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search tasks..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 border-slate-300 focus:border-slate-900"
+            className="pl-9 border-border focus:border-border"
           />
         </div>
         <Select value={levelFilter} onValueChange={(value) => { if (value) setLevelFilter(value); }}>
-          <SelectTrigger className="w-full sm:w-44 border-slate-300">
+          <SelectTrigger className="w-full sm:w-44 border-border">
             <SelectValue placeholder="All levels" />
           </SelectTrigger>
           <SelectContent>
@@ -135,23 +135,23 @@ export function TaskBoard({
           <div key={col.key} className="min-w-0">
             <div
               className={cn(
-                'flex items-center justify-between px-3 py-2 mb-3 rounded-t-lg border-t-2 bg-white border-x border-slate-200',
+                'flex items-center justify-between px-3 py-2 mb-3 rounded-t-lg border-t-2 bg-card border-x border-border',
                 col.color
               )}
             >
-              <span className="text-sm font-semibold text-slate-700">
+              <span className="text-sm font-semibold text-secondary-foreground">
                 {col.label}
               </span>
-              <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+              <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                 {grouped[col.key]?.length ?? 0}
               </span>
             </div>
 
             <div className="space-y-3">
               {grouped[col.key]?.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-8 text-center border border-dashed border-slate-200 rounded-lg bg-slate-50/50">
-                  <ListTodo size={24} className="text-slate-300 mb-2" />
-                  <p className="text-xs text-slate-400">No tasks</p>
+                <div className="flex flex-col items-center justify-center py-8 text-center border border-dashed border-border rounded-lg bg-background/50">
+                  <ListTodo size={24} className="text-muted-foreground mb-2" />
+                  <p className="text-xs text-muted-foreground">No tasks</p>
                 </div>
               ) : (
                 grouped[col.key]?.map((task) => (

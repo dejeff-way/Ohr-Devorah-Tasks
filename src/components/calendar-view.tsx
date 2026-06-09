@@ -138,7 +138,7 @@ export default function CalendarView({ tasks, users, currentUserId, isAdmin }: C
           <Button variant="outline" size="icon-sm" onClick={prevMonth}>
             <ChevronLeft size={16} />
           </Button>
-          <h2 className="text-lg font-semibold text-slate-900 min-w-[140px] text-center">
+          <h2 className="text-lg font-semibold text-foreground min-w-[140px] text-center">
             {format(currentMonth, 'MMMM yyyy')}
           </h2>
           <Button variant="outline" size="icon-sm" onClick={nextMonth}>
@@ -155,7 +155,7 @@ export default function CalendarView({ tasks, users, currentUserId, isAdmin }: C
         {DAY_HEADERS.map((day) => (
           <div
             key={day}
-            className="text-center text-xs font-medium text-slate-500 py-2 border-b border-slate-200"
+            className="text-center text-xs font-medium text-muted-foreground py-2 border-b border-border"
           >
             {day}
           </div>
@@ -163,7 +163,7 @@ export default function CalendarView({ tasks, users, currentUserId, isAdmin }: C
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-7 flex-1 border-l border-t border-slate-200 rounded-lg overflow-hidden">
+      <div className="grid grid-cols-7 flex-1 border-l border-t border-border rounded-lg overflow-hidden">
         {days.map((day) => {
           const key = format(day, 'yyyy-MM-dd');
           const dayTasks = tasksByDate.get(key) ?? [];
@@ -173,8 +173,8 @@ export default function CalendarView({ tasks, users, currentUserId, isAdmin }: C
           return (
             <div
               key={key}
-              className={`min-h-[80px] sm:min-h-[100px] border-r border-b border-slate-200 p-1.5 ${
-                inMonth ? 'bg-white' : 'bg-slate-50/50'
+              className={`min-h-[80px] sm:min-h-[100px] border-r border-b border-border p-1.5 ${
+                inMonth ? 'bg-card' : 'bg-background/50'
               }`}
             >
               {/* Date number */}
@@ -182,10 +182,10 @@ export default function CalendarView({ tasks, users, currentUserId, isAdmin }: C
                 <span
                   className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium ${
                     today
-                      ? 'bg-slate-900 text-white'
+                      ? 'bg-primary text-primary-foreground'
                       : inMonth
-                        ? 'text-slate-700'
-                        : 'text-slate-400'
+                        ? 'text-secondary-foreground'
+                        : 'text-muted-foreground'
                   }`}
                 >
                   {format(day, 'd')}
@@ -200,7 +200,7 @@ export default function CalendarView({ tasks, users, currentUserId, isAdmin }: C
                     <TaskPill key={task.id} task={task} compact={false} />
                   ))}
                   {dayTasks.length > 3 && (
-                    <p className="text-[10px] text-slate-400 pl-1">
+                    <p className="text-[10px] text-muted-foreground pl-1">
                       +{dayTasks.length - 3} more
                     </p>
                   )}
@@ -212,7 +212,7 @@ export default function CalendarView({ tasks, users, currentUserId, isAdmin }: C
                     <TaskPill key={task.id} task={task} compact={true} />
                   ))}
                   {dayTasks.length > 5 && (
-                    <span className="text-[10px] text-slate-400 ml-0.5">
+                    <span className="text-[10px] text-muted-foreground ml-0.5">
                       +{dayTasks.length - 5}
                     </span>
                   )}
@@ -224,7 +224,7 @@ export default function CalendarView({ tasks, users, currentUserId, isAdmin }: C
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap items-center gap-3 mt-4 px-1 text-xs text-slate-500">
+      <div className="flex flex-wrap items-center gap-3 mt-4 px-1 text-xs text-muted-foreground">
         <span className="font-medium">Status:</span>
         {(Object.entries(STATUS_COLORS) as [CompletionLevel, typeof STATUS_COLORS['pending']][]).map(
           ([level, colors]) => (

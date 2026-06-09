@@ -222,7 +222,7 @@ export default function AdminDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-slate-900" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-foreground" />
       </div>
     );
   }
@@ -242,13 +242,13 @@ export default function AdminDashboard() {
       </div>
 
       {/* Tab bar */}
-      <div className="flex gap-1 border-b border-slate-200">
+      <div className="flex gap-1 border-b border-border">
         <button
           onClick={() => setActiveTab('tasks')}
           className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'tasks'
-              ? 'border-slate-900 text-slate-900'
-              : 'border-transparent text-slate-500 hover:text-slate-700'
+              ? 'border-border text-foreground'
+              : 'border-transparent text-muted-foreground hover:text-secondary-foreground'
           }`}
         >
           <ListChecks size={16} />
@@ -258,8 +258,8 @@ export default function AdminDashboard() {
           onClick={() => setActiveTab('staff')}
           className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'staff'
-              ? 'border-slate-900 text-slate-900'
-              : 'border-transparent text-slate-500 hover:text-slate-700'
+              ? 'border-border text-foreground'
+              : 'border-transparent text-muted-foreground hover:text-secondary-foreground'
           }`}
         >
           <Users size={16} />
@@ -278,7 +278,7 @@ export default function AdminDashboard() {
                 onChange={setSelectedUserId}
               />
             </div>
-            <div className="text-xs text-slate-500">
+            <div className="text-xs text-muted-foreground">
               {selectedUserId === 'all'
                 ? `Showing all ${allTasks.length} tasks across ${users.length} users`
                 : `Showing ${filteredTasks.length} tasks assigned to ${selectedUser?.name ?? 'selected user'}`}
@@ -315,25 +315,25 @@ export default function AdminDashboard() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50/50">
-                      <th className="text-left py-3 px-4 font-medium text-slate-500">Name</th>
-                      <th className="text-left py-3 px-4 font-medium text-slate-500">Email</th>
-                      <th className="text-left py-3 px-4 font-medium text-slate-500">Role</th>
-                      <th className="text-right py-3 px-4 font-medium text-slate-500">Actions</th>
+                    <tr className="border-b border-border bg-background/50">
+                      <th className="text-left py-3 px-4 font-medium text-muted-foreground">Name</th>
+                      <th className="text-left py-3 px-4 font-medium text-muted-foreground">Email</th>
+                      <th className="text-left py-3 px-4 font-medium text-muted-foreground">Role</th>
+                      <th className="text-right py-3 px-4 font-medium text-muted-foreground">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {users.map((u) => (
-                      <tr key={u.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                        <td className="py-3 px-4 font-medium text-slate-900">{u.name}</td>
-                        <td className="py-3 px-4 text-slate-500">{u.email}</td>
+                      <tr key={u.id} className="border-b border-border hover:bg-background transition-colors">
+                        <td className="py-3 px-4 font-medium text-foreground">{u.name}</td>
+                        <td className="py-3 px-4 text-muted-foreground">{u.email}</td>
                         <td className="py-3 px-4">
                           <Badge
                             variant={u.role === 'admin' ? 'default' : 'secondary'}
                             className={
                               u.role === 'admin'
                                 ? 'bg-amber-100 text-amber-800 hover:bg-amber-100 border-0'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-100 border-0'
+                                : 'bg-muted text-secondary-foreground hover:bg-muted border-0'
                             }
                           >
                             {u.role === 'admin' ? (
@@ -366,7 +366,7 @@ export default function AdminDashboard() {
                                   <Check size={14} className="text-green-600" />
                                 </Button>
                                 <Button size="sm" variant="ghost" onClick={() => { setResettingUserId(null); setResetPassword(''); }}>
-                                  <X size={14} className="text-slate-400" />
+                                  <X size={14} className="text-muted-foreground" />
                                 </Button>
                               </div>
                             ) : (
@@ -376,7 +376,7 @@ export default function AdminDashboard() {
                                   size="sm"
                                   onClick={() => { setResettingUserId(u.id); setResetPassword(''); }}
                                   disabled={u.id === currentUser?.id}
-                                  className="text-xs text-slate-400 hover:text-slate-700"
+                                  className="text-xs text-muted-foreground hover:text-secondary-foreground"
                                   title="Reset password"
                                 >
                                   <KeyRound size={14} />
@@ -437,7 +437,7 @@ export default function AdminDashboard() {
                   size="sm"
                   onClick={handleAddSlot}
                   disabled={addingSlot || !newSlotName.trim()}
-                  className="bg-slate-900 hover:bg-slate-800"
+                  className="bg-primary hover:bg-secondary"
                 >
                   <Plus size={14} className="mr-1" />
                   Add Slot
@@ -455,8 +455,8 @@ export default function AdminDashboard() {
                       key={slot.id}
                       className={`flex items-center justify-between px-3 py-2 rounded-md border text-sm ${
                         isTaken
-                          ? 'bg-slate-50 border-slate-200'
-                          : 'bg-white border-dashed border-slate-300'
+                          ? 'bg-background border-border'
+                          : 'bg-card border-dashed border-border'
                       }`}
                     >
                       {isEditing ? (
@@ -475,20 +475,20 @@ export default function AdminDashboard() {
                             <Check size={14} className="text-green-600" />
                           </Button>
                           <Button size="sm" variant="ghost" onClick={() => setEditingSlot(null)}>
-                            <X size={14} className="text-slate-400" />
+                            <X size={14} className="text-muted-foreground" />
                           </Button>
                         </div>
                       ) : (
                         <>
                           <div className="flex items-center gap-2">
-                            <span className="font-medium text-slate-900">{slot.name}</span>
+                            <span className="font-medium text-foreground">{slot.name}</span>
                             {isTaken && (
                               <Badge variant="secondary" className="bg-green-50 text-green-700 border-0 text-xs">
                                 Assigned
                               </Badge>
                             )}
                             {!isTaken && (
-                              <Badge variant="secondary" className="bg-slate-50 text-slate-400 border-0 text-xs">
+                              <Badge variant="secondary" className="bg-background text-muted-foreground border-0 text-xs">
                                 Available
                               </Badge>
                             )}
@@ -498,7 +498,7 @@ export default function AdminDashboard() {
                               size="sm"
                               variant="ghost"
                               onClick={() => { setEditingSlot(slot.id); setEditSlotName(slot.name); }}
-                              className="text-slate-400 hover:text-slate-700"
+                              className="text-muted-foreground hover:text-secondary-foreground"
                             >
                               <Pencil size={14} />
                             </Button>
@@ -506,7 +506,7 @@ export default function AdminDashboard() {
                               size="sm"
                               variant="ghost"
                               onClick={() => handleDeleteSlot(slot.id)}
-                              className="text-slate-400 hover:text-red-600"
+                              className="text-muted-foreground hover:text-red-600"
                             >
                               <Trash2 size={14} />
                             </Button>

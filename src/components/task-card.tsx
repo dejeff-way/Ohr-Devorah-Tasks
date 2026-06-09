@@ -43,8 +43,8 @@ interface TaskCardProps {
 const levelConfig = {
   pending: {
     label: 'Pending',
-    color: 'bg-slate-100 text-slate-700 border-slate-300',
-    dot: 'bg-slate-400',
+    color: 'bg-muted text-secondary-foreground border-border',
+    dot: 'bg-muted-foreground',
   },
   in_progress: {
     label: 'In Progress',
@@ -99,7 +99,7 @@ export function TaskCard({ task, users, currentUserId, isAdmin }: TaskCardProps)
 
   return (
     <>
-      <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow bg-white">
+      <Card className="border-border shadow-sm hover:shadow-md transition-shadow bg-card">
         <CardHeader className="flex flex-row items-start justify-between gap-2 px-4 pt-4 pb-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
@@ -111,7 +111,7 @@ export function TaskCard({ task, users, currentUserId, isAdmin }: TaskCardProps)
                 {config.label}
               </Badge>
             </div>
-            <h3 className="text-sm font-semibold text-slate-900 leading-snug truncate">
+            <h3 className="text-sm font-semibold text-foreground leading-snug truncate">
               {task.title}
             </h3>
           </div>
@@ -122,7 +122,7 @@ export function TaskCard({ task, users, currentUserId, isAdmin }: TaskCardProps)
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 shrink-0 text-slate-400 hover:text-slate-700"
+                  className="h-8 w-8 shrink-0 text-muted-foreground hover:text-secondary-foreground"
                 >
                   <MoreHorizontal size={16} />
                 </Button>
@@ -156,7 +156,7 @@ export function TaskCard({ task, users, currentUserId, isAdmin }: TaskCardProps)
 
         {task.description && (
           <CardContent className="px-4 py-1">
-            <p className="text-sm text-slate-600 line-clamp-2">{task.description}</p>
+            <p className="text-sm text-secondary-foreground line-clamp-2">{task.description}</p>
           </CardContent>
         )}
 
@@ -166,8 +166,8 @@ export function TaskCard({ task, users, currentUserId, isAdmin }: TaskCardProps)
           </CardContent>
         )}
 
-        <CardFooter className="flex items-center justify-between px-4 py-3 border-t border-slate-100 mt-2">
-          <div className="flex items-center gap-3 text-xs text-slate-500">
+        <CardFooter className="flex items-center justify-between px-4 py-3 border-t border-border mt-2">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <Calendar size={12} />
               {format(dateObj, 'MMM d, yyyy')}
@@ -179,19 +179,19 @@ export function TaskCard({ task, users, currentUserId, isAdmin }: TaskCardProps)
 
           {assigneeNames.length > 0 && (
             <div className="flex items-center gap-1">
-              <Users size={12} className="text-slate-400" />
+              <Users size={12} className="text-muted-foreground" />
               <div className="flex -space-x-1.5">
                 {assigneeNames.slice(0, 3).map((name, i) => (
                   <div
                     key={i}
-                    className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-[10px] font-medium text-slate-600 ring-2 ring-white"
+                    className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-[10px] font-medium text-secondary-foreground ring-2 ring-white"
                     title={name}
                   >
                     {name.charAt(0)}
                   </div>
                 ))}
                 {assigneeNames.length > 3 && (
-                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-[10px] font-medium text-slate-500 ring-2 ring-white">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-[10px] font-medium text-muted-foreground ring-2 ring-white">
                     +{assigneeNames.length - 3}
                   </div>
                 )}

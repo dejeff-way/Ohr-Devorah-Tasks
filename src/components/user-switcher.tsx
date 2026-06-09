@@ -37,10 +37,10 @@ export function UserSwitcher({ users, selectedUserId, onChange }: UserSwitcherPr
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between border-slate-300 hover:bg-slate-50"
+          className="w-full justify-between border-border hover:bg-background"
         >
           <div className="flex items-center gap-2">
-            <Eye size={15} className="text-slate-400 shrink-0" />
+            <Eye size={15} className="text-muted-foreground shrink-0" />
             <span className="text-sm">
               {selectedUser
                 ? selectedUser.name
@@ -70,7 +70,7 @@ export function UserSwitcher({ users, selectedUserId, onChange }: UserSwitcherPr
                   )}
                 />
                 <span>All Staff</span>
-                <span className="ml-auto text-xs text-slate-400">
+                <span className="ml-auto text-xs text-muted-foreground">
                   Global View
                 </span>
               </CommandItem>
@@ -90,7 +90,7 @@ export function UserSwitcher({ users, selectedUserId, onChange }: UserSwitcherPr
                     )}
                   />
                   <span>{user.name}</span>
-                  <span className="ml-auto text-xs text-slate-400">
+                  <span className="ml-auto text-xs text-muted-foreground">
                     {user.role === 'admin' ? 'Admin' : 'Staff'}
                   </span>
                 </CommandItem>

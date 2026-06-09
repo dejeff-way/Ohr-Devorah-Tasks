@@ -50,16 +50,16 @@ export function MultiSelect({ users, selectedIds, onChange, disabled }: MultiSel
             role="combobox"
             aria-expanded={open}
             disabled={disabled}
-            className="w-full justify-between h-auto min-h-10 px-3 py-2 border-slate-300 hover:bg-slate-50"
+            className="w-full justify-between h-auto min-h-10 px-3 py-2 border-border hover:bg-background"
           >
             <div className="flex flex-wrap gap-1.5">
               {selectedUsers.length === 0 ? (
-                <span className="text-sm text-slate-400">Select assignees...</span>
+                <span className="text-sm text-muted-foreground">Select assignees...</span>
               ) : (
                 selectedUsers.map((u) => (
                   <span
                     key={u.id}
-                    className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700 border border-slate-200"
+                    className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-secondary-foreground border border-border"
                   >
                     {u.name}
                     {!disabled && (
@@ -68,7 +68,7 @@ export function MultiSelect({ users, selectedIds, onChange, disabled }: MultiSel
                           e.stopPropagation();
                           removeUser(u.id);
                         }}
-                        className="hover:text-slate-900"
+                        className="hover:text-foreground"
                       >
                         <X size={12} />
                       </button>
@@ -99,7 +99,7 @@ export function MultiSelect({ users, selectedIds, onChange, disabled }: MultiSel
                     )}
                   />
                   <span>{user.name}</span>
-                  <span className="ml-auto text-xs text-slate-400">
+                  <span className="ml-auto text-xs text-muted-foreground">
                     {user.role === 'admin' ? 'Admin' : 'Staff'}
                   </span>
                 </CommandItem>

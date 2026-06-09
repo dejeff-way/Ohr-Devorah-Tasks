@@ -127,7 +127,7 @@ export default function MessagesPage() {
       case 'group':
         return <Users size={16} className="text-blue-500" />;
       default:
-        return <User size={16} className="text-slate-400" />;
+        return <User size={16} className="text-muted-foreground" />;
     }
   };
 
@@ -156,7 +156,7 @@ export default function MessagesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-slate-900" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-foreground" />
       </div>
     );
   }
@@ -165,7 +165,7 @@ export default function MessagesPage() {
     <div className="max-w-3xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold text-slate-900">Messages</h1>
+        <h1 className="text-xl font-semibold text-foreground">Messages</h1>
         <Button onClick={() => setShowNewDialog(true)} size="sm">
           <Plus size={16} className="mr-1.5" />
           New Message
@@ -175,10 +175,10 @@ export default function MessagesPage() {
       {/* Conversation list */}
       {conversations.length === 0 ? (
         <div className="text-center py-16">
-          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
-            <MessageSquare size={28} className="text-slate-400" />
+          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+            <MessageSquare size={28} className="text-muted-foreground" />
           </div>
-          <p className="text-sm text-slate-500 mb-4">No conversations yet</p>
+          <p className="text-sm text-muted-foreground mb-4">No conversations yet</p>
           <Button onClick={() => setShowNewDialog(true)} variant="outline" size="sm">
             <Plus size={14} className="mr-1.5" />
             Start a conversation
@@ -194,11 +194,11 @@ export default function MessagesPage() {
               <Link
                 key={conv.id}
                 href={`/dashboard/messages/${conv.id}`}
-                className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-100 transition-colors group"
+                className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors group"
               >
                 {/* Avatar */}
                 <div className="relative flex-shrink-0">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 text-sm font-medium text-slate-600">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-sm font-medium text-secondary-foreground">
                     {conv.type === 'broadcast'
                       ? '#'
                       : otherParticipant
@@ -211,7 +211,7 @@ export default function MessagesPage() {
                 {/* Content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-slate-900 truncate">
+                    <span className="text-sm font-medium text-foreground truncate">
                       {getConversationTitle(conv)}
                     </span>
                     {conv.type === 'broadcast' && (
@@ -220,18 +220,18 @@ export default function MessagesPage() {
                       </Badge>
                     )}
                   </div>
-                  <p className="text-xs text-slate-500 truncate mt-0.5">
+                  <p className="text-xs text-muted-foreground truncate mt-0.5">
                     {conv.last_message?.content ?? 'No messages yet'}
                   </p>
                 </div>
 
                 {/* Meta */}
                 <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                  <span className="text-[11px] text-slate-400">
+                  <span className="text-[11px] text-muted-foreground">
                     {formatTime(conv.last_message_at)}
                   </span>
                   {conv.unread_count && conv.unread_count > 0 ? (
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[11px] font-medium text-white">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[11px] font-medium text-primary-foreground">
                       {conv.unread_count}
                     </span>
                   ) : null}
@@ -252,13 +252,13 @@ export default function MessagesPage() {
               setSelectedUsers([]);
             }}
           />
-          <div className="relative z-10 w-full max-w-md mx-4 bg-white rounded-xl shadow-xl p-5">
-            <h2 className="text-base font-semibold text-slate-900 mb-4">
+          <div className="relative z-10 w-full max-w-md mx-4 bg-card rounded-xl shadow-xl p-5">
+            <h2 className="text-base font-semibold text-foreground mb-4">
               New Conversation
             </h2>
 
             {/* Type toggle */}
-            <div className="flex gap-1 mb-4 bg-slate-100 rounded-lg p-1">
+            <div className="flex gap-1 mb-4 bg-muted rounded-lg p-1">
               <button
                 onClick={() => {
                   setNewType('dm');
@@ -266,8 +266,8 @@ export default function MessagesPage() {
                 }}
                 className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${
                   newType === 'dm'
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700'
+                    ? 'bg-card text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-secondary-foreground'
                 }`}
               >
                 Direct
@@ -279,8 +279,8 @@ export default function MessagesPage() {
                 }}
                 className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${
                   newType === 'group'
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700'
+                    ? 'bg-card text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-secondary-foreground'
                 }`}
               >
                 Group
@@ -291,7 +291,7 @@ export default function MessagesPage() {
             <div className="relative mb-3">
               <Search
                 size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
               />
               <Input
                 value={searchQuery}
@@ -304,7 +304,7 @@ export default function MessagesPage() {
             {/* User list */}
             <div className="max-h-56 overflow-y-auto space-y-0.5 mb-4">
               {filteredUsers.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-6">
+                <p className="text-sm text-muted-foreground text-center py-6">
                   No people found
                 </p>
               ) : (
@@ -314,15 +314,15 @@ export default function MessagesPage() {
                     onClick={() => toggleUser(u.id)}
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
                       selectedUsers.includes(u.id)
-                        ? 'bg-slate-900 text-white'
-                        : 'hover:bg-slate-50 text-slate-700'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'hover:bg-background text-secondary-foreground'
                     }`}
                   >
                     <div
                       className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium ${
                         selectedUsers.includes(u.id)
-                          ? 'bg-white/20 text-white'
-                          : 'bg-slate-200 text-slate-600'
+                          ? 'bg-card/20 text-card-foreground'
+                          : 'bg-muted text-secondary-foreground'
                       }`}
                     >
                       {u.name?.charAt(0) ?? '?'}
@@ -332,8 +332,8 @@ export default function MessagesPage() {
                       <p
                         className={`text-xs ${
                           selectedUsers.includes(u.id)
-                            ? 'text-white/70'
-                            : 'text-slate-400'
+                            ? 'text-primary-foreground/70'
+                            : 'text-muted-foreground'
                         }`}
                       >
                         {u.role}
@@ -346,7 +346,7 @@ export default function MessagesPage() {
 
             {/* Selected counter for groups */}
             {newType === 'group' && selectedUsers.length > 0 && (
-              <p className="text-xs text-slate-500 mb-3">
+              <p className="text-xs text-muted-foreground mb-3">
                 {selectedUsers.length} selected
               </p>
             )}

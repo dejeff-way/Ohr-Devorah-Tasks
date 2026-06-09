@@ -101,7 +101,7 @@ export function TaskForm({ task, users, onSuccess }: TaskFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div className="space-y-2">
-        <Label htmlFor="title" className="text-sm font-medium text-slate-700">
+        <Label htmlFor="title" className="text-sm font-medium text-secondary-foreground">
           Title
         </Label>
         <Input
@@ -110,12 +110,12 @@ export function TaskForm({ task, users, onSuccess }: TaskFormProps) {
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Task title..."
           required
-          className="border-slate-300 focus:border-slate-900"
+          className="border-border focus:border-border"
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description" className="text-sm font-medium text-slate-700">
+        <Label htmlFor="description" className="text-sm font-medium text-secondary-foreground">
           Description / Comments
         </Label>
         <Textarea
@@ -124,13 +124,13 @@ export function TaskForm({ task, users, onSuccess }: TaskFormProps) {
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Add notes, instructions, or comments..."
           rows={4}
-          className="border-slate-300 focus:border-slate-900 resize-none"
+          className="border-border focus:border-border resize-none"
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label className="text-sm font-medium text-slate-700">
+          <Label className="text-sm font-medium text-secondary-foreground">
             Date Required
           </Label>
           <Popover>
@@ -138,8 +138,8 @@ export function TaskForm({ task, users, onSuccess }: TaskFormProps) {
           <Button
             variant="outline"
             className={cn(
-              'w-full justify-start text-left font-normal border-slate-300',
-              !dateRequired && 'text-slate-400'
+              'w-full justify-start text-left font-normal border-border',
+              !dateRequired && 'text-muted-foreground'
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
@@ -157,11 +157,11 @@ export function TaskForm({ task, users, onSuccess }: TaskFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label className="text-sm font-medium text-slate-700">
+          <Label className="text-sm font-medium text-secondary-foreground">
             Completion Level
           </Label>
           <Select value={completionLevel} onValueChange={(value) => { if (value) setCompletionLevel(value as typeof completionLevel); }}>
-            <SelectTrigger className="border-slate-300">
+            <SelectTrigger className="border-border">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -176,7 +176,7 @@ export function TaskForm({ task, users, onSuccess }: TaskFormProps) {
       </div>
 
       <div className="space-y-2">
-        <Label className="text-sm font-medium text-slate-700">
+        <Label className="text-sm font-medium text-secondary-foreground">
           Assigned To
         </Label>
         <MultiSelect
@@ -193,7 +193,7 @@ export function TaskForm({ task, users, onSuccess }: TaskFormProps) {
         <Button
           type="submit"
           disabled={loading || selectedIds.length === 0}
-          className="bg-slate-900 hover:bg-slate-800 text-white"
+          className="bg-primary hover:bg-secondary text-primary-foreground"
         >
           {loading ? 'Saving...' : isEditing ? 'Update Task' : 'Create Task'}
         </Button>

@@ -90,7 +90,7 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50">
+    <div className="flex h-screen overflow-hidden bg-background">
       <Toaster richColors position="top-center" />
 
       {/* Mobile overlay */}
@@ -104,25 +104,25 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
       {/* Sidebar */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-50 w-64 flex flex-col bg-slate-900 text-white
+          fixed inset-y-0 left-0 z-50 w-64 flex flex-col bg-sidebar text-sidebar-foreground
           transform transition-transform duration-200 ease-in-out
           lg:relative lg:translate-x-0
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >
         {/* Sidebar header */}
-        <div className="flex items-center justify-between px-5 py-5 border-b border-slate-700">
+        <div className="flex items-center justify-between px-5 py-5 border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-700">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary">
               <span className="text-sm font-bold">OD</span>
             </div>
             <div>
               <p className="text-sm font-semibold leading-tight">Ohr Devora</p>
-              <p className="text-xs text-slate-400 leading-tight">Task Manager</p>
+              <p className="text-xs text-muted-foreground leading-tight">Task Manager</p>
             </div>
           </div>
           <button
-            className="lg:hidden text-slate-400 hover:text-white"
+            className="lg:hidden text-muted-foreground hover:text-primary-foreground"
             onClick={() => setSidebarOpen(false)}
           >
             <X size={20} />
@@ -130,9 +130,9 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
         </div>
 
         {/* User info */}
-        <div className="px-5 py-4 border-b border-slate-800">
+        <div className="px-5 py-4 border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-700 text-sm font-medium">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-sm font-medium">
               {user.name.charAt(0)}
             </div>
             <div className="min-w-0">
@@ -141,7 +141,7 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
                 className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full ${
                   isAdmin
                     ? 'bg-amber-500/20 text-amber-400'
-                    : 'bg-slate-700 text-slate-300'
+                    : 'bg-secondary text-muted-foreground'
                 }`}
               >
                 {isAdmin ? 'Admin' : 'Staff'}
@@ -159,8 +159,8 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
               onClick={() => setSidebarOpen(false)}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 item.active
-                  ? 'bg-slate-800 text-white'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                  ? 'bg-secondary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-primary-foreground hover:bg-secondary/50'
               }`}
             >
               <item.icon size={18} />
@@ -175,10 +175,10 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
         </nav>
 
         {/* Logout */}
-        <div className="px-3 py-4 border-t border-slate-800">
+        <div className="px-3 py-4 border-t border-border">
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition-colors"
+            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-primary-foreground hover:bg-secondary/50 transition-colors"
           >
             <LogOut size={18} />
             Sign out
@@ -189,15 +189,15 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="flex items-center justify-between px-4 lg:px-6 py-3 border-b border-slate-200 bg-white">
+        <header className="flex items-center justify-between px-4 lg:px-6 py-3 border-b border-border bg-card">
           <div className="flex items-center gap-3">
             <button
-              className="lg:hidden text-slate-600 hover:text-slate-900"
+              className="lg:hidden text-secondary-foreground hover:text-foreground"
               onClick={() => setSidebarOpen(true)}
             >
               <Menu size={22} />
             </button>
-            <h2 className="text-lg font-semibold text-slate-900 hidden sm:block">
+            <h2 className="text-lg font-semibold text-foreground hidden sm:block">
               {pathname === '/dashboard/admin'
                 ? 'Admin Panel'
                 : pathname === '/dashboard/calendar'
@@ -208,10 +208,10 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
             </h2>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-slate-500 hidden sm:inline">
+            <span className="text-sm text-muted-foreground hidden sm:inline">
               {user.name}
             </span>
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-sm font-medium text-slate-700 sm:hidden">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm font-medium text-secondary-foreground sm:hidden">
               {user.name.charAt(0)}
             </div>
           </div>

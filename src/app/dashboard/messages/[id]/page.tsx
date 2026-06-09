@@ -250,7 +250,7 @@ export default function ChatPage({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-slate-900" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-foreground" />
       </div>
     );
   }
@@ -270,19 +270,19 @@ export default function ChatPage({
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)] max-w-3xl mx-auto">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-200 bg-white rounded-t-xl">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card rounded-t-xl">
         <button
           onClick={() => router.push('/dashboard/messages')}
-          className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors"
+          className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
         >
           <ArrowLeft size={18} />
         </button>
         <div className="flex-1 min-w-0">
-          <h2 className="text-sm font-semibold text-slate-900 truncate">
+          <h2 className="text-sm font-semibold text-foreground truncate">
             {getConversationTitle()}
           </h2>
           {conversation?.type === 'group' && (
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted-foreground">
               {conversation.participants?.length ?? 0} members
             </p>
           )}
@@ -290,7 +290,7 @@ export default function ChatPage({
         {conversation?.type !== 'broadcast' && (
           <button
             onClick={handleLeave}
-            className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors"
             title="Leave conversation"
           >
             <LogOut size={16} />
@@ -329,11 +329,11 @@ export default function ChatPage({
           <div key={group.date} className="space-y-1">
             {/* Date separator */}
             <div className="flex items-center gap-3 my-3">
-              <div className="flex-1 h-px bg-slate-100" />
-              <span className="text-[11px] font-medium text-slate-400">
+              <div className="flex-1 h-px bg-muted" />
+              <span className="text-[11px] font-medium text-muted-foreground">
                 {group.date}
               </span>
-              <div className="flex-1 h-px bg-slate-100" />
+              <div className="flex-1 h-px bg-muted" />
             </div>
 
             {group.messages.map((msg, i) => {
@@ -350,7 +350,7 @@ export default function ChatPage({
                 >
                   {!isMine && showAvatar ? (
                     <div className="flex-shrink-0 mt-1">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-200 text-[11px] font-medium text-slate-600">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-[11px] font-medium text-secondary-foreground">
                         {senderName.charAt(0)}
                       </div>
                     </div>
@@ -361,12 +361,12 @@ export default function ChatPage({
                   <div
                     className={`group relative max-w-[75%] rounded-2xl px-3.5 py-2 ${
                       isMine
-                        ? 'bg-slate-900 text-white rounded-br-md'
-                        : 'bg-slate-100 text-slate-800 rounded-bl-md'
+                        ? 'bg-primary text-primary-foreground rounded-br-md'
+                        : 'bg-muted text-foreground rounded-bl-md'
                     }`}
                   >
                     {!isMine && showAvatar && (
-                      <p className="text-[11px] font-medium text-slate-500 mb-0.5">
+                      <p className="text-[11px] font-medium text-muted-foreground mb-0.5">
                         {senderName}
                       </p>
                     )}
@@ -380,7 +380,7 @@ export default function ChatPage({
                     >
                       <span
                         className={`text-[10px] ${
-                          isMine ? 'text-white/60' : 'text-slate-400'
+                          isMine ? 'text-primary-foreground/60' : 'text-muted-foreground'
                         }`}
                       >
                         {formatMessageTime(msg.created_at)}
@@ -388,7 +388,7 @@ export default function ChatPage({
                       {isMine && msg.id && (
                         <button
                           onClick={() => handleDelete(msg.id)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity text-white/40 hover:text-white/80"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-primary-foreground/40 hover:text-primary-foreground/80"
                         >
                           <Trash2 size={12} />
                         </button>
@@ -398,7 +398,7 @@ export default function ChatPage({
 
                   {isMine && showAvatar ? (
                     <div className="flex-shrink-0 mt-1">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-900 text-[11px] font-medium text-white">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-[11px] font-medium text-primary-foreground">
                         {senderName.charAt(0)}
                       </div>
                     </div>
@@ -415,7 +415,7 @@ export default function ChatPage({
       </div>
 
       {/* Input */}
-      <div className="px-4 py-3 border-t border-slate-200 bg-white rounded-b-xl">
+      <div className="px-4 py-3 border-t border-border bg-card rounded-b-xl">
         <div className="flex gap-2 items-end">
           <Textarea
             value={newMessage}

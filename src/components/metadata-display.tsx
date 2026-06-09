@@ -33,12 +33,12 @@ function valueColor(entry: MetadataEntry): string {
   if (typeof entry.value === 'boolean') {
     return entry.value
       ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-      : 'bg-slate-50 text-slate-500 border-slate-200';
+      : 'bg-background text-muted-foreground border-border';
   }
   if (typeof entry.value === 'number') {
     return 'bg-blue-50 text-blue-700 border-blue-200';
   }
-  return 'bg-slate-50 text-slate-700 border-slate-200';
+  return 'bg-background text-secondary-foreground border-border';
 }
 
 export function MetadataDisplay({ entries, compact = false, className }: MetadataDisplayProps) {

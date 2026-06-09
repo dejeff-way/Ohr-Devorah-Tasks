@@ -145,7 +145,7 @@ export default function CalendarPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-slate-900" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-foreground" />
       </div>
     );
   }
