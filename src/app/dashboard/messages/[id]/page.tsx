@@ -23,7 +23,7 @@ export default function ChatPage({
 }) {
   const router = useRouter();
   const supabase = createClient();
-  const conversationId = useRef<string>('');
+  const [convId, setConvId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversation, setConversation] = useState<Conversation | null>(null);
@@ -33,36 +33,34 @@ export default function ChatPage({
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prevMessageCountRef = useRef(0);
 
   const fetchMessages = useCallback(async (cursor?: string) => {
-    const result = await loadMessages(conversationId.current, cursor);
+    if (!convId) return;
+    const result = await loadMessages(convId, cursor);
     if ('error' in result) {
       toast.error(result.error);
       return;
     }
 
     if (cursor) {
-      // Prepend older messages (they're in reverse order from server)
       setMessages((prev) => [...result.data, ...prev]);
     } else {
       setMessages(result.data);
     }
     setHasMore(result.hasMore);
 
-    // Get conversation info from first message fetch
     if (!conversation) {
       const { data: convData } = await supabase
         .from('conversations')
         .select('*')
-        .eq('id', conversationId.current)
+        .eq('id', convId)
         .single();
       if (convData) {
         const { data: participants } = await supabase
           .from('conversation_participants')
           .select('user:user_id(id, name, role)')
-          .eq('conversation_id', conversationId.current);
+          .eq('conversation_id', convId);
         setConversation({
           ...convData,
           participants: (participants || []).map((p: any) => ({
@@ -73,64 +71,69 @@ export default function ChatPage({
         });
       }
     }
-  }, [supabase, conversation]);
+  }, [supabase, convId, conversation]);
 
-  // Initialize
+  // Initialize — resolve params first, then subscribe
   useEffect(() => {
     let cancelled = false;
 
     async function init() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push('/auth/login');
-        return;
-      }
+      if (!user) { router.push('/auth/login'); return; }
       if (cancelled) return;
+
       setCurrentUserId(user.id);
 
-      // Wait for params
       const { id } = await params;
-      conversationId.current = id;
+      if (cancelled) return;
+
+      setConvId(id);
 
       await fetchMessages();
       setLoading(false);
-
-      // Mark as read
       markRead(id).catch(() => {});
     }
 
     init();
 
-    // Realtime subscription
+    return () => { cancelled = true; };
+  }, [params, supabase, router, fetchMessages]);
+
+  // Start realtime only AFTER convId is known (prevents empty filter subscription)
+  useEffect(() => {
+    if (!convId || !currentUserId) return;
+
+    let cancelled = false;
+
     const channel = supabase
-      .channel(`messages-${conversationId.current}`)
+      .channel(`messages-${convId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'messages',
-          filter: `conversation_id=eq.${conversationId.current}`,
+          filter: `conversation_id=eq.${convId}`,
         },
         (payload) => {
           if (cancelled) return;
           const newMsg = payload.new as Message;
-          // Don't add if we sent it (already in optimistic state)
-          if (newMsg.sender_id === currentUserId) {
-            // Update with server ID if this was our message
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.sender_id === currentUserId &&
-                !m.id &&
-                m.content === newMsg.content
-                  ? { ...newMsg, sender: m.sender }
-                  : m
-              )
+
+          // If this is our own message, replace the optimistic one
+          setMessages((prev) => {
+            const optimisticIdx = prev.findIndex(
+              (m) => !m.id && m.sender_id === currentUserId && m.content === newMsg.content
             );
-          } else {
-            setMessages((prev) => [...prev, newMsg]);
-          }
-          markRead(conversationId.current).catch(() => {});
+            if (optimisticIdx >= 0) {
+              const updated = [...prev];
+              updated[optimisticIdx] = newMsg;
+              return updated;
+            }
+            // Someone else's message
+            return [...prev, newMsg];
+          });
+
+          markRead(convId).catch(() => {});
         }
       )
       .subscribe();
@@ -139,7 +142,7 @@ export default function ChatPage({
       cancelled = true;
       supabase.removeChannel(channel);
     };
-  }, [params, supabase, router, fetchMessages, currentUserId]);
+  }, [convId, currentUserId, supabase]);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -150,6 +153,7 @@ export default function ChatPage({
   }, [messages.length]);
 
   async function handleSend() {
+    if (!convId) return;
     const trimmed = newMessage.trim();
     if (!trimmed || sending) return;
 
@@ -159,7 +163,7 @@ export default function ChatPage({
     // Optimistic insert
     const optimistic: Message = {
       id: '',
-      conversation_id: conversationId.current,
+      conversation_id: convId,
       sender_id: currentUserId,
       content: trimmed,
       created_at: new Date().toISOString(),
@@ -169,21 +173,16 @@ export default function ChatPage({
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
 
     const form = new FormData();
-    form.set('conversation_id', conversationId.current);
+    form.set('conversation_id', convId);
     form.set('content', trimmed);
 
     const result = await sendMessage(form);
 
     if ('error' in result) {
       toast.error(result.error);
-      // Remove optimistic message
       setMessages((prev) => prev.filter((m) => m !== optimistic));
-    } else if (result.message) {
-      // Replace optimistic with real message
-      setMessages((prev) =>
-        prev.map((m) => (m === optimistic ? result.message! : m))
-      );
     }
+    // Realtime will replace the optimistic message with the real one
 
     setSending(false);
   }
@@ -201,12 +200,13 @@ export default function ChatPage({
     const result = await deleteMessage(msgId);
     if ('error' in result) {
       toast.error(result.error);
-      await fetchMessages(); // recover
+      await fetchMessages();
     }
   }
 
   async function handleLeave() {
-    const result = await leaveConversation(conversationId.current);
+    if (!convId) return;
+    const result = await leaveConversation(convId);
     if ('error' in result) {
       toast.error(result.error);
     } else {
@@ -234,9 +234,7 @@ export default function ChatPage({
   function formatMessageDate(ts: string) {
     const d = new Date(ts);
     const now = new Date();
-    if (
-      d.toDateString() === now.toDateString()
-    ) return 'Today';
+    if (d.toDateString() === now.toDateString()) return 'Today';
     const yesterday = new Date(now);
     yesterday.setDate(yesterday.getDate() - 1);
     if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
@@ -255,7 +253,6 @@ export default function ChatPage({
     );
   }
 
-  // Group messages by date
   const dateGroups: { date: string; messages: Message[] }[] = [];
   for (const msg of messages) {
     const dateStr = formatMessageDate(msg.created_at);
@@ -268,21 +265,21 @@ export default function ChatPage({
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-5rem)] max-w-3xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card rounded-t-xl">
+    <div className="flex flex-col overflow-hidden" style={{ height: 'calc(100vh - 7rem)' }}>
+      {/* Header — fixed at top */}
+      <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b-2 border-border bg-card rounded-t-xl">
         <button
           onClick={() => router.push('/dashboard/messages')}
-          className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
+          className="p-1.5 rounded-xl hover:bg-muted text-muted-foreground transition-colors"
         >
           <ArrowLeft size={18} />
         </button>
         <div className="flex-1 min-w-0">
-          <h2 className="text-sm font-semibold text-foreground truncate">
+          <h2 className="text-sm font-extrabold text-foreground truncate">
             {getConversationTitle()}
           </h2>
           {conversation?.type === 'group' && (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs font-semibold text-muted-foreground">
               {conversation.participants?.length ?? 0} members
             </p>
           )}
@@ -290,7 +287,7 @@ export default function ChatPage({
         {conversation?.type !== 'broadcast' && (
           <button
             onClick={handleLeave}
-            className="p-1.5 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors"
+            className="p-1.5 rounded-xl hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors"
             title="Leave conversation"
           >
             <LogOut size={16} />
@@ -298,16 +295,12 @@ export default function ChatPage({
         )}
       </div>
 
-      {/* Messages */}
-      <div
-        ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto px-4 py-4 space-y-4"
-      >
-        {/* Load more */}
+      {/* Messages — scrollable fill */}
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-4">
         {hasMore && (
           <div className="text-center pb-2">
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={async () => {
                 setLoadingMore(true);
@@ -327,19 +320,17 @@ export default function ChatPage({
 
         {dateGroups.map((group) => (
           <div key={group.date} className="space-y-1">
-            {/* Date separator */}
             <div className="flex items-center gap-3 my-3">
-              <div className="flex-1 h-px bg-muted" />
-              <span className="text-[11px] font-medium text-muted-foreground">
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-[11px] font-extrabold text-muted-foreground">
                 {group.date}
               </span>
-              <div className="flex-1 h-px bg-muted" />
+              <div className="flex-1 h-px bg-border" />
             </div>
 
             {group.messages.map((msg, i) => {
               const isMine = msg.sender_id === currentUserId;
               const senderName = msg.sender?.name ?? 'Unknown';
-              // Show sender avatar for first message in a sequence from same person
               const prevMsg = group.messages[i - 1];
               const showAvatar = !prevMsg || prevMsg.sender_id !== msg.sender_id;
 
@@ -350,7 +341,7 @@ export default function ChatPage({
                 >
                   {!isMine && showAvatar ? (
                     <div className="flex-shrink-0 mt-1">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-[11px] font-medium text-secondary">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary text-[11px] font-extrabold text-secondary-foreground">
                         {senderName.charAt(0)}
                       </div>
                     </div>
@@ -366,7 +357,7 @@ export default function ChatPage({
                     }`}
                   >
                     {!isMine && showAvatar && (
-                      <p className="text-[11px] font-medium text-muted-foreground mb-0.5">
+                      <p className="text-[11px] font-extrabold text-secondary mb-0.5">
                         {senderName}
                       </p>
                     )}
@@ -398,7 +389,7 @@ export default function ChatPage({
 
                   {isMine && showAvatar ? (
                     <div className="flex-shrink-0 mt-1">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-[11px] font-medium text-primary-foreground">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-[11px] font-extrabold text-primary-foreground">
                         {senderName.charAt(0)}
                       </div>
                     </div>
@@ -414,22 +405,22 @@ export default function ChatPage({
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
-      <div className="px-4 py-3 border-t border-border bg-card rounded-b-xl">
+      {/* Input — fixed at bottom */}
+      <div className="flex-shrink-0 px-4 py-3 border-t-2 border-border bg-card rounded-b-xl">
         <div className="flex gap-2 items-end">
           <Textarea
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Type a message..."
-            className="min-h-[40px] max-h-32 resize-none"
+            className="min-h-[44px] max-h-32 resize-none"
             rows={1}
           />
           <Button
             onClick={handleSend}
             disabled={!newMessage.trim() || sending}
             size="icon"
-            className="flex-shrink-0 h-10 w-10"
+            className="flex-shrink-0 h-11 w-11"
           >
             {sending ? (
               <Loader2 size={16} className="animate-spin" />

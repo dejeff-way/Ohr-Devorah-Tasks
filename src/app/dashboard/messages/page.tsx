@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { loadConversations, createConversation } from './actions';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ import type { User as UserType } from '@/types/task';
 import { toast } from 'sonner';
 
 export default function MessagesPage() {
+  const router = useRouter();
   const supabase = createClient();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [users, setUsers] = useState<UserType[]>([]);
@@ -100,6 +102,10 @@ export default function MessagesPage() {
     toast.success('Conversation created');
     setShowNewDialog(false);
     setSelectedUsers([]);
+    // Navigate directly to the new conversation
+    if (result.conversation_id) {
+      router.push(`/dashboard/messages/${result.conversation_id}`);
+    }
   }
 
   function toggleUser(userId: string) {
