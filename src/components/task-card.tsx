@@ -99,7 +99,7 @@ export function TaskCard({ task, users, currentUserId, isAdmin }: TaskCardProps)
 
   return (
     <>
-      <Card className="border-border shadow-sm hover:shadow-md transition-shadow bg-card">
+      <Card className="border-border bg-card">
         <CardHeader className="flex flex-row items-start justify-between gap-2 px-4 pt-4 pb-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
