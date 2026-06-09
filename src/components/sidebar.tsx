@@ -1,9 +1,10 @@
 'use client';
 
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { logout } from '@/app/auth/actions';
+import { getUnreadMessageCount } from '@/app/dashboard/messages/actions';
 import { Toaster } from '@/components/ui/sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,6 +16,7 @@ import {
   Users,
   Shield,
   CalendarDays,
+  MessageSquare,
 } from 'lucide-react';
 import { User } from '@/types/task';
 
@@ -27,10 +29,30 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const isAdmin = user.role === 'admin';
 
-  const navItems = [
+  // Poll unread message count every 30 seconds
+  useEffect(() => {
+    async function poll() {
+      const result = await getUnreadMessageCount();
+      if ('count' in result) setUnreadCount(result.count);
+    }
+    poll();
+    const interval = setInterval(poll, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const messagesActive = pathname.startsWith('/dashboard/messages');
+
+  const navItems: Array<{
+    label: string;
+    href: string;
+    icon: typeof ListChecks;
+    active: boolean;
+    badge?: number;
+  }> = [
     {
       label: 'My Tasks',
       href: '/dashboard',
@@ -42,6 +64,13 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
       href: '/dashboard/calendar',
       icon: CalendarDays,
       active: pathname === '/dashboard/calendar',
+    },
+    {
+      label: 'Messages',
+      href: '/dashboard/messages',
+      icon: MessageSquare,
+      active: messagesActive,
+      badge: unreadCount,
     },
     ...(isAdmin
       ? [
@@ -135,7 +164,12 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
               }`}
             >
               <item.icon size={18} />
-              {item.label}
+              <span className="flex-1">{item.label}</span>
+              {item.badge != null && item.badge > 0 && (
+                <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-medium text-white">
+                  {(item.badge! > 99) ? '99+' : item.badge!}
+                </span>
+              )}
             </Link>
           ))}
         </nav>
@@ -168,7 +202,9 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
                 ? 'Admin Panel'
                 : pathname === '/dashboard/calendar'
                   ? 'Calendar'
-                  : 'Task Dashboard'}
+                  : pathname.startsWith('/dashboard/messages')
+                    ? 'Messages'
+                    : 'Task Dashboard'}
             </h2>
           </div>
           <div className="flex items-center gap-2">

@@ -116,6 +116,38 @@ export async function createTask(formData: FormData) {
     if (stepsError) return { error: stepsError.message };
   }
 
+  // Auto-create task chat thread
+  try {
+    const { data: chatConv, error: chatError } = await supabase
+      .from('conversations')
+      .insert({
+        type: 'group',
+        title: title,
+        created_by: user.id,
+        task_id: task.id,
+      })
+      .select()
+      .single();
+
+    if (!chatError && chatConv) {
+      const chatParticipantIds = [...new Set([user.id, ...assignee_ids])];
+      const chatPartRows = chatParticipantIds.map((uid) => ({
+        conversation_id: chatConv.id,
+        user_id: uid,
+      }));
+
+      await supabase.from('conversation_participants').insert(chatPartRows);
+
+      await supabase.from('messages').insert({
+        conversation_id: chatConv.id,
+        sender_id: user.id,
+        content: `Task created: "${title}". Discussion thread for assignees.`,
+      });
+    }
+  } catch {
+    // Task chat is non-critical — don't block task creation if it fails
+  }
+
   revalidatePath('/dashboard');
   return { success: true, task };
 }
