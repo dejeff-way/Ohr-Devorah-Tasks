@@ -59,7 +59,7 @@ export function MultiSelect({ users, selectedIds, onChange, disabled }: MultiSel
                 selectedUsers.map((u) => (
                   <span
                     key={u.id}
-                    className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-secondary-foreground border border-border"
+                    className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-secondary border border-border"
                   >
                     {u.name}
                     {!disabled && (

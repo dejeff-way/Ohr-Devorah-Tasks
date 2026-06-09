@@ -248,7 +248,7 @@ export default function AdminDashboard() {
           className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'tasks'
               ? 'border-border text-foreground'
-              : 'border-transparent text-muted-foreground hover:text-secondary-foreground'
+              : 'border-transparent text-muted-foreground hover:text-secondary'
           }`}
         >
           <ListChecks size={16} />
@@ -259,7 +259,7 @@ export default function AdminDashboard() {
           className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'staff'
               ? 'border-border text-foreground'
-              : 'border-transparent text-muted-foreground hover:text-secondary-foreground'
+              : 'border-transparent text-muted-foreground hover:text-secondary'
           }`}
         >
           <Users size={16} />
@@ -333,7 +333,7 @@ export default function AdminDashboard() {
                             className={
                               u.role === 'admin'
                                 ? 'bg-amber-100 text-amber-800 hover:bg-amber-100 border-0'
-                                : 'bg-muted text-secondary-foreground hover:bg-muted border-0'
+                                : 'bg-muted text-secondary hover:bg-muted border-0'
                             }
                           >
                             {u.role === 'admin' ? (
@@ -376,7 +376,7 @@ export default function AdminDashboard() {
                                   size="sm"
                                   onClick={() => { setResettingUserId(u.id); setResetPassword(''); }}
                                   disabled={u.id === currentUser?.id}
-                                  className="text-xs text-muted-foreground hover:text-secondary-foreground"
+                                  className="text-xs text-muted-foreground hover:text-secondary"
                                   title="Reset password"
                                 >
                                   <KeyRound size={14} />
@@ -498,7 +498,7 @@ export default function AdminDashboard() {
                               size="sm"
                               variant="ghost"
                               onClick={() => { setEditingSlot(slot.id); setEditSlotName(slot.name); }}
-                              className="text-muted-foreground hover:text-secondary-foreground"
+                              className="text-muted-foreground hover:text-secondary"
                             >
                               <Pencil size={14} />
                             </Button>

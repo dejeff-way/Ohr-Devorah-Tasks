@@ -184,7 +184,7 @@ export default function CalendarView({ tasks, users, currentUserId, isAdmin }: C
                     today
                       ? 'bg-primary text-primary-foreground'
                       : inMonth
-                        ? 'text-secondary-foreground'
+                        ? 'text-secondary'
                         : 'text-muted-foreground'
                   }`}
                 >

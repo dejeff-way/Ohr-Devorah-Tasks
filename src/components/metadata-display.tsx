@@ -38,7 +38,7 @@ function valueColor(entry: MetadataEntry): string {
   if (typeof entry.value === 'number') {
     return 'bg-blue-50 text-blue-700 border-blue-200';
   }
-  return 'bg-background text-secondary-foreground border-border';
+  return 'bg-background text-secondary border-border';
 }
 
 export function MetadataDisplay({ entries, compact = false, className }: MetadataDisplayProps) {

@@ -101,7 +101,7 @@ export function TaskForm({ task, users, onSuccess }: TaskFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div className="space-y-2">
-        <Label htmlFor="title" className="text-sm font-medium text-secondary-foreground">
+        <Label htmlFor="title" className="text-sm font-medium text-secondary">
           Title
         </Label>
         <Input
@@ -115,7 +115,7 @@ export function TaskForm({ task, users, onSuccess }: TaskFormProps) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description" className="text-sm font-medium text-secondary-foreground">
+        <Label htmlFor="description" className="text-sm font-medium text-secondary">
           Description / Comments
         </Label>
         <Textarea
@@ -130,7 +130,7 @@ export function TaskForm({ task, users, onSuccess }: TaskFormProps) {
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label className="text-sm font-medium text-secondary-foreground">
+          <Label className="text-sm font-medium text-secondary">
             Date Required
           </Label>
           <Popover>
@@ -157,7 +157,7 @@ export function TaskForm({ task, users, onSuccess }: TaskFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label className="text-sm font-medium text-secondary-foreground">
+          <Label className="text-sm font-medium text-secondary">
             Completion Level
           </Label>
           <Select value={completionLevel} onValueChange={(value) => { if (value) setCompletionLevel(value as typeof completionLevel); }}>
@@ -176,7 +176,7 @@ export function TaskForm({ task, users, onSuccess }: TaskFormProps) {
       </div>
 
       <div className="space-y-2">
-        <Label className="text-sm font-medium text-secondary-foreground">
+        <Label className="text-sm font-medium text-secondary">
           Assigned To
         </Label>
         <MultiSelect
@@ -193,7 +193,7 @@ export function TaskForm({ task, users, onSuccess }: TaskFormProps) {
         <Button
           type="submit"
           disabled={loading || selectedIds.length === 0}
-          className="bg-primary hover:bg-secondary text-primary-foreground"
+
         >
           {loading ? 'Saving...' : isEditing ? 'Update Task' : 'Create Task'}
         </Button>

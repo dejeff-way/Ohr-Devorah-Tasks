@@ -144,7 +144,7 @@ export default function ManageUsersPage() {
                         className={
                           u.role === 'admin'
                             ? 'bg-amber-100 text-amber-800 hover:bg-amber-100 border-0'
-                            : 'bg-muted text-secondary-foreground hover:bg-muted border-0'
+                            : 'bg-muted text-secondary hover:bg-muted border-0'
                         }
                       >
                         {u.role === 'admin' ? (

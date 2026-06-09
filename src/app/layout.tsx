@@ -1,16 +1,10 @@
 import type { Metadata } from 'next';
-import { Roboto, DM_Sans, Geist_Mono } from 'next/font/google';
+import { Nunito_Sans, Geist_Mono } from 'next/font/google';
 import './globals.css';
 
-const roboto = Roboto({
-  weight: ['400', '500', '700'],
-  variable: '--font-roboto',
-  subsets: ['latin'],
-});
-
-const dmSans = DM_Sans({
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-dm-sans',
+const nunitoSans = Nunito_Sans({
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-nunito-sans',
   subsets: ['latin'],
 });
 
@@ -30,11 +24,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${roboto.variable} ${dmSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col bg-background text-foreground">
+    <html lang="en" className={`${nunitoSans.variable} ${geistMono.variable} h-full antialiased`}>
+      <body className="min-h-full bg-background text-foreground">
         {children}
       </body>
     </html>

@@ -84,7 +84,7 @@ export function TaskBoard({
 
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger>
-            <Button className="bg-primary hover:bg-secondary text-primary-foreground gap-2">
+            <Button className="gap-2">
               <Plus size={16} />
               New Task
             </Button>
@@ -139,7 +139,7 @@ export function TaskBoard({
                 col.color
               )}
             >
-              <span className="text-sm font-semibold text-secondary-foreground">
+              <span className="text-sm font-semibold text-secondary">
                 {col.label}
               </span>
               <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">

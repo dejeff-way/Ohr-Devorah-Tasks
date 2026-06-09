@@ -43,7 +43,7 @@ interface TaskCardProps {
 const levelConfig = {
   pending: {
     label: 'Pending',
-    color: 'bg-muted text-secondary-foreground border-border',
+    color: 'bg-muted text-secondary border-border',
     dot: 'bg-muted-foreground',
   },
   in_progress: {
@@ -122,7 +122,7 @@ export function TaskCard({ task, users, currentUserId, isAdmin }: TaskCardProps)
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 shrink-0 text-muted-foreground hover:text-secondary-foreground"
+                  className="h-8 w-8 shrink-0 text-muted-foreground hover:text-secondary"
                 >
                   <MoreHorizontal size={16} />
                 </Button>
@@ -156,7 +156,7 @@ export function TaskCard({ task, users, currentUserId, isAdmin }: TaskCardProps)
 
         {task.description && (
           <CardContent className="px-4 py-1">
-            <p className="text-sm text-secondary-foreground line-clamp-2">{task.description}</p>
+            <p className="text-sm text-secondary line-clamp-2">{task.description}</p>
           </CardContent>
         )}
 
@@ -184,7 +184,7 @@ export function TaskCard({ task, users, currentUserId, isAdmin }: TaskCardProps)
                 {assigneeNames.slice(0, 3).map((name, i) => (
                   <div
                     key={i}
-                    className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-[10px] font-medium text-secondary-foreground ring-2 ring-white"
+                    className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-[10px] font-medium text-secondary ring-2 ring-white"
                     title={name}
                   >
                     {name.charAt(0)}

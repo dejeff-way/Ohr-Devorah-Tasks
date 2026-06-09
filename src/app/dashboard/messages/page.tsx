@@ -198,7 +198,7 @@ export default function MessagesPage() {
               >
                 {/* Avatar */}
                 <div className="relative flex-shrink-0">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-sm font-medium text-secondary-foreground">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-sm font-medium text-secondary">
                     {conv.type === 'broadcast'
                       ? '#'
                       : otherParticipant
@@ -267,7 +267,7 @@ export default function MessagesPage() {
                 className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${
                   newType === 'dm'
                     ? 'bg-card text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-secondary-foreground'
+                    : 'text-muted-foreground hover:text-secondary'
                 }`}
               >
                 Direct
@@ -280,7 +280,7 @@ export default function MessagesPage() {
                 className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${
                   newType === 'group'
                     ? 'bg-card text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-secondary-foreground'
+                    : 'text-muted-foreground hover:text-secondary'
                 }`}
               >
                 Group
@@ -315,14 +315,14 @@ export default function MessagesPage() {
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
                       selectedUsers.includes(u.id)
                         ? 'bg-primary text-primary-foreground'
-                        : 'hover:bg-background text-secondary-foreground'
+                        : 'hover:bg-background text-secondary'
                     }`}
                   >
                     <div
                       className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium ${
                         selectedUsers.includes(u.id)
-                          ? 'bg-card/20 text-card-foreground'
-                          : 'bg-muted text-secondary-foreground'
+                          ? 'bg-secondary text-secondary-foreground'
+                          : 'bg-muted text-secondary'
                       }`}
                     >
                       {u.name?.charAt(0) ?? '?'}

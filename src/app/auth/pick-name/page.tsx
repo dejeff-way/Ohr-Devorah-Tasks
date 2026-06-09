@@ -93,17 +93,17 @@ export default function PickNamePage() {
   const availableSlots = slots.filter((s) => !takenNames.includes(s.name));
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-8">
       <Toaster richColors position="top-center" />
-      <Card className="w-full max-w-lg shadow-lg border-border">
+      <Card className="w-full max-w-xl border-4 border-secondary p-2">
         <CardHeader className="text-center pb-4">
-          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-primary">
-            <span className="text-xl font-bold text-primary-foreground">OD</span>
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-primary">
+            <span className="text-2xl font-extrabold text-primary-foreground">OD</span>
           </div>
-          <CardTitle className="text-2xl font-semibold tracking-tight text-foreground">
+          <CardTitle className="text-3xl font-extrabold tracking-tight text-foreground">
             Welcome to Ohr Devora
           </CardTitle>
-          <CardDescription className="text-muted-foreground">
+          <CardDescription className="text-base font-semibold text-muted-foreground">
             Pick your staff name to get started. This will be your identity in the system.
           </CardDescription>
         </CardHeader>
@@ -122,10 +122,10 @@ export default function PickNamePage() {
                   variant="outline"
                   onClick={() => handleClaim(slot)}
                   disabled={claiming === slot.id}
-                  className="w-full justify-start text-left h-auto py-3 px-4 border-border hover:border-border hover:bg-background"
+                  className="w-full justify-start text-left h-auto py-4 px-4 border-2 border-border hover:border-primary hover:bg-muted"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-sm font-medium text-secondary-foreground">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-sm font-medium text-secondary">
                       {slot.name.charAt(0)}
                     </div>
                     <span className="font-medium text-foreground">{slot.name}</span>

@@ -350,7 +350,7 @@ export default function ChatPage({
                 >
                   {!isMine && showAvatar ? (
                     <div className="flex-shrink-0 mt-1">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-[11px] font-medium text-secondary-foreground">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-[11px] font-medium text-secondary">
                         {senderName.charAt(0)}
                       </div>
                     </div>
