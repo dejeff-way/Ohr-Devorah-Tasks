@@ -74,6 +74,8 @@ export function TaskCard({ task, users, currentUserId, isAdmin }: TaskCardProps)
   const dateObj = new Date(task.date_required);
   const isOverdue = dateObj < new Date() && task.completion_level !== 'completed';
   const isCreator = task.created_by === currentUserId;
+  const isAssignee = task.assignees?.some((a) => a.id === currentUserId) ?? false;
+  const canEdit = isAdmin || isCreator || isAssignee;
 
   const nextLevels: Record<string, string> = {
     pending: 'in_progress',
@@ -197,7 +199,7 @@ export function TaskCard({ task, users, currentUserId, isAdmin }: TaskCardProps)
           </div>
 
           {/* Action buttons */}
-          {(isAdmin || isCreator) && (
+          {canEdit && (
             <div className="flex gap-2 pt-2 border-t-2 border-border mt-2">
               <Button variant="outline" size="sm" onClick={() => { setDetailOpen(false); setEditOpen(true); }}>
                 <Pencil size={14} className="mr-1.5" />
@@ -209,10 +211,12 @@ export function TaskCard({ task, users, currentUserId, isAdmin }: TaskCardProps)
                   Move to {nextLevels[task.completion_level] ? levelConfig[nextLevels[task.completion_level] as keyof typeof levelConfig]?.label : 'Next'}
                 </Button>
               )}
-              <Button variant="destructive" size="sm" onClick={() => { setDetailOpen(false); setDeleteConfirm(true); }}>
-                <Trash2 size={14} className="mr-1.5" />
-                Delete
-              </Button>
+              {(isAdmin || isCreator) && (
+                <Button variant="destructive" size="sm" onClick={() => { setDetailOpen(false); setDeleteConfirm(true); }}>
+                  <Trash2 size={14} className="mr-1.5" />
+                  Delete
+                </Button>
+              )}
             </div>
           )}
         </DialogContent>
@@ -239,7 +243,7 @@ export function TaskCard({ task, users, currentUserId, isAdmin }: TaskCardProps)
             </h3>
           </div>
 
-          {(isAdmin || isCreator) && (
+          {canEdit && (
             <div onClick={(e) => e.stopPropagation()}>
             <DropdownMenu>
               <DropdownMenuTrigger>
@@ -265,14 +269,18 @@ export function TaskCard({ task, users, currentUserId, isAdmin }: TaskCardProps)
                       : 'Next'}
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="text-red-600 focus:text-red-600"
-                  onClick={() => setDeleteConfirm(true)}
-                >
-                  <Trash2 size={14} className="mr-2" />
-                  Delete
-                </DropdownMenuItem>
+                {(isAdmin || isCreator) && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="text-red-600 focus:text-red-600"
+                      onClick={() => setDeleteConfirm(true)}
+                    >
+                      <Trash2 size={14} className="mr-2" />
+                      Delete
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
             </div>

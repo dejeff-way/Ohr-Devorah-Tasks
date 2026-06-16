@@ -158,6 +158,23 @@ export async function updateTask(taskId: string, formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
 
+  // Fetch the task to determine the user's relationship to it
+  const { data: task } = await supabase
+    .from('tasks')
+    .select('created_by, assignees:task_assignees(user_id)')
+    .eq('id', taskId)
+    .single();
+
+  if (!task) return { error: 'Task not found' };
+
+  const isAdmin = await supabase.rpc('is_admin', { uid: user.id }).then(r => r.data ?? false);
+  const isCreator = task.created_by === user.id;
+  const isAssignee = task.assignees?.some((a: { user_id: string }) => a.user_id === user.id) ?? false;
+
+  if (!isAdmin && !isCreator && !isAssignee) {
+    return { error: 'You do not have permission to edit this task' };
+  }
+
   const metadata = parseMetadataFromForm(formData);
 
   const raw: Record<string, unknown> = {
@@ -177,31 +194,42 @@ export async function updateTask(taskId: string, formData: FormData) {
 
   const { title, description, date_required, recurrence, completion_level, assignee_ids } = parsed.data;
 
-  const { error: taskError } = await supabase
-    .from('tasks')
-    .update({ title, description, date_required, recurrence, completion_level, metadata })
-    .eq('id', taskId);
+  if (isAdmin || isCreator) {
+    // Full edit: update all fields and re-sync assignees
+    const { error: taskError } = await supabase
+      .from('tasks')
+      .update({ title, description, date_required, recurrence, completion_level, metadata })
+      .eq('id', taskId);
 
-  if (taskError) return { error: taskError.message };
+    if (taskError) return { error: taskError.message };
 
-  // Re-sync assignees: delete all, insert new
-  const { error: delError } = await supabase
-    .from('task_assignees')
-    .delete()
-    .eq('task_id', taskId);
+    // Re-sync assignees: delete all, insert new
+    const { error: delError } = await supabase
+      .from('task_assignees')
+      .delete()
+      .eq('task_id', taskId);
 
-  if (delError) return { error: delError.message };
+    if (delError) return { error: delError.message };
 
-  const assigneeRows = assignee_ids.map((uid: string) => ({
-    task_id: taskId,
-    user_id: uid,
-  }));
+    const assigneeRows = assignee_ids.map((uid: string) => ({
+      task_id: taskId,
+      user_id: uid,
+    }));
 
-  const { error: assignError } = await supabase
-    .from('task_assignees')
-    .insert(assigneeRows);
+    const { error: assignError } = await supabase
+      .from('task_assignees')
+      .insert(assigneeRows);
 
-  if (assignError) return { error: assignError.message };
+    if (assignError) return { error: assignError.message };
+  } else {
+    // Assignee-limited edit: only update description and completion_level
+    const { error: taskError } = await supabase
+      .from('tasks')
+      .update({ description, completion_level })
+      .eq('id', taskId);
+
+    if (taskError) return { error: taskError.message };
+  }
 
   revalidatePath('/dashboard');
   return { success: true };

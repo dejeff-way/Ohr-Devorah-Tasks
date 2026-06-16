@@ -265,7 +265,7 @@ export default function ChatPage({
   }
 
   return (
-    <div className="flex flex-col overflow-hidden" style={{ height: 'calc(100vh - 7rem)' }}>
+    <div className="flex flex-col overflow-hidden" style={{ height: 'calc(100vh - 10rem)' }}>
       {/* Header — fixed at top */}
       <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b-2 border-border bg-card rounded-t-xl">
         <button
