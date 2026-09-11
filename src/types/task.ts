@@ -22,6 +22,19 @@ export interface TaskStep {
 }
 
 /**
+ * One line in a task's activity log — an action that was actually attempted,
+ * stamped with who did it and when. Append-only; see migration 00018.
+ */
+export interface TaskActivity {
+  id: string;
+  task_id: string;
+  author_id: string | null;
+  body: string;
+  created_at: string;
+  author?: Pick<User, 'id' | 'name' | 'role'> | null;
+}
+
+/**
  * A single metadata entry — key is a short label, value is any JSON-safe
  * type (string, number, boolean, array, or nested object).
  */
@@ -49,6 +62,7 @@ export interface Task {
   updated_at: string;
   assignees?: User[];
   steps?: TaskStep[];
+  activity?: TaskActivity[];
 }
 
 export interface TaskAssignee {

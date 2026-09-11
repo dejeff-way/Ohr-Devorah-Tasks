@@ -3,7 +3,7 @@
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import type { MetadataEntry } from '@/types/task';
+import type { MetadataEntry, TaskActivity } from '@/types/task';
 
 const metadataEntrySchema = z.object({
   key: z.string().min(1, 'Attribute key is required'),
@@ -253,6 +253,79 @@ export async function updateCompletionLevel(taskId: string, level: string) {
     .update({ completion_level: level })
     .eq('id', taskId);
 
+  if (error) return { error: error.message };
+
+  revalidatePath('/dashboard');
+  return { success: true };
+}
+
+// ─── Task Activity Log ─────────────────────────────────────
+//
+// An append-only history of what has been tried on a task. RLS (migration
+// 00018) decides who can read and write; these actions only enforce shape.
+
+const activitySchema = z.object({
+  task_id: z.string().min(1, 'Task is required'),
+  body: z.string().trim().min(1, 'Write something first').max(2000, 'Keep it under 2000 characters'),
+});
+
+export async function loadTaskActivity(
+  taskId: string
+): Promise<{ data: TaskActivity[] } | { error: string }> {
+  const supabase = await createServerSupabaseClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+
+  const { data, error } = await supabase
+    .from('task_activity')
+    .select('*, author:author_id(id, name, role)')
+    .eq('task_id', taskId)
+    .order('created_at', { ascending: false });
+
+  if (error) return { error: error.message };
+
+  return { data: (data ?? []) as unknown as TaskActivity[] };
+}
+
+export async function addTaskActivity(formData: FormData) {
+  const supabase = await createServerSupabaseClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+
+  const parsed = activitySchema.safeParse({
+    task_id: formData.get('task_id'),
+    body: formData.get('body'),
+  });
+
+  if (!parsed.success) {
+    return { error: formatZodError(parsed.error) };
+  }
+
+  const { data, error } = await supabase
+    .from('task_activity')
+    .insert({
+      task_id: parsed.data.task_id,
+      author_id: user.id,
+      body: parsed.data.body,
+    })
+    .select('*, author:author_id(id, name, role)')
+    .single();
+
+  if (error) return { error: error.message };
+
+  revalidatePath('/dashboard');
+  return { entry: data as unknown as TaskActivity };
+}
+
+export async function deleteTaskActivity(entryId: string) {
+  const supabase = await createServerSupabaseClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+
+  const { error } = await supabase.from('task_activity').delete().eq('id', entryId);
   if (error) return { error: error.message };
 
   revalidatePath('/dashboard');

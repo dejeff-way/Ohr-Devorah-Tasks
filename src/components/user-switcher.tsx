@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, ChevronsUpDown, Eye } from 'lucide-react';
+import { ChevronsUpDown, Eye, Users } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import {
   Command,
@@ -11,12 +12,8 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { UserAvatar } from '@/components/user-avatar';
 import { User } from '@/types/task';
 
 interface UserSwitcherProps {
@@ -28,69 +25,66 @@ interface UserSwitcherProps {
 export function UserSwitcher({ users, selectedUserId, onChange }: UserSwitcherProps) {
   const [open, setOpen] = useState(false);
 
-  const selectedUser = selectedUserId === 'all' ? null : users.find((u) => u.id === selectedUserId);
+  const selectedUser =
+    selectedUserId === 'all' ? null : users.find((u) => u.id === selectedUserId);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className="w-full justify-between border-border hover:bg-background"
-        >
-          <div className="flex items-center gap-2">
-            <Eye size={15} className="text-muted-foreground shrink-0" />
-            <span className="text-sm">
-              {selectedUser
-                ? selectedUser.name
-                : 'Viewing: All Staff'}
-            </span>
-          </div>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
+      <PopoverTrigger
+        render={
+          <Button
+            type="button"
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-full justify-between font-medium"
+          />
+        }
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          <Eye size={15} className="shrink-0 text-muted-foreground" />
+          <span className="truncate">
+            {selectedUser ? selectedUser.name : 'All staff'}
+          </span>
+        </span>
+        <ChevronsUpDown size={15} className="shrink-0 text-muted-foreground" />
       </PopoverTrigger>
-      <PopoverContent className="w-full min-w-[var(--radix-popover-trigger-width)] p-0">
+
+      <PopoverContent className="w-(--anchor-width) min-w-56 p-0" align="start">
         <Command>
-          <CommandInput placeholder="Search staff..." />
+          <CommandInput placeholder="Search staff…" />
           <CommandList>
             <CommandEmpty>No staff found.</CommandEmpty>
             <CommandGroup>
               <CommandItem
                 value="all-users"
+                data-checked={selectedUserId === 'all'}
                 onSelect={() => {
                   onChange('all');
                   setOpen(false);
                 }}
               >
-                <Check
-                  className={cn(
-                    'mr-2 h-4 w-4',
-                    selectedUserId === 'all' ? 'opacity-100' : 'opacity-0'
-                  )}
-                />
-                <span>All Staff</span>
-                <span className="ml-auto text-xs text-muted-foreground">
-                  Global View
+                <span className="inline-flex size-6 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                  <Users size={12} />
+                </span>
+                <span>All staff</span>
+                <span className="ml-auto text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                  Everyone
                 </span>
               </CommandItem>
               {users.map((user) => (
                 <CommandItem
                   key={user.id}
                   value={user.name}
+                  data-checked={selectedUserId === user.id}
                   onSelect={() => {
                     onChange(user.id);
                     setOpen(false);
                   }}
                 >
-                  <Check
-                    className={cn(
-                      'mr-2 h-4 w-4',
-                      selectedUserId === user.id ? 'opacity-100' : 'opacity-0'
-                    )}
-                  />
-                  <span>{user.name}</span>
-                  <span className="ml-auto text-xs text-muted-foreground">
+                  <UserAvatar name={user.name} size="xs" />
+                  <span className="truncate">{user.name}</span>
+                  <span className="ml-auto text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                     {user.role === 'admin' ? 'Admin' : 'Staff'}
                   </span>
                 </CommandItem>

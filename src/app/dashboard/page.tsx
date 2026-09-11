@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { TaskBoard } from '@/components/task-board';
+import { PageLoader } from '@/components/ui/spinner';
 import { Task, User } from '@/types/task';
 
 export default function StaffDashboard() {
@@ -91,20 +92,17 @@ export default function StaffDashboard() {
   }, [router, supabase]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-foreground" />
-      </div>
-    );
+    return <PageLoader label="Loading your tasks" />;
   }
 
+  // No `title` here: the shell already renders the "My Tasks" heading, and the
+  // board used to print a second one directly beneath it.
   return (
     <TaskBoard
       tasks={tasks}
       users={users}
       currentUserId={currentUser?.id ?? ''}
       isAdmin={false}
-      title="My Tasks"
     />
   );
 }

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import CalendarView from '@/components/calendar-view';
+import { PageLoader } from '@/components/ui/spinner';
 import type { Task, User } from '@/types/task';
 
 export default function CalendarPage() {
@@ -29,14 +30,14 @@ export default function CalendarPage() {
       }
 
       // Get all task assignments for the user (or all if admin)
-      let taskRows: any[] = [];
+      let taskRows: Task[] = [];
 
       if (isAdmin) {
         const { data } = await supabase
           .from('tasks')
           .select('*')
           .order('date_required', { ascending: true });
-        taskRows = data ?? [];
+        taskRows = (data ?? []) as Task[];
       } else {
         const { data: assignments } = await supabase
           .from('task_assignees')
@@ -52,7 +53,7 @@ export default function CalendarPage() {
             .select('*')
             .in('id', taskIds)
             .order('date_required', { ascending: true });
-          taskRows = data ?? [];
+          taskRows = (data ?? []) as Task[];
         }
       }
 
@@ -83,7 +84,7 @@ export default function CalendarPage() {
         }));
       }
 
-      return { tasks: taskRows as Task[], users: allUsers as User[] ?? [] };
+      return { tasks: taskRows, users: (allUsers as User[]) ?? [] };
     },
     [supabase],
   );
@@ -143,15 +144,11 @@ export default function CalendarPage() {
   }, [router, supabase, fetchTasks]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-foreground" />
-      </div>
-    );
+    return <PageLoader label="Loading calendar" />;
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="mx-auto max-w-6xl">
       <CalendarView
         tasks={tasks}
         users={users}

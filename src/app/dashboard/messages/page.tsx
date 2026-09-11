@@ -1,21 +1,25 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Megaphone, MessageSquare, Plus, Search, User, Users, X } from 'lucide-react';
+
 import { createClient } from '@/lib/supabase/client';
-import { loadConversations, createConversation } from './actions';
+import { createConversation, loadConversations } from './actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import {
-  MessageSquare,
-  Plus,
-  Search,
-  Users,
-  User,
-  Megaphone,
-} from 'lucide-react';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { EmptyState } from '@/components/ui/empty-state';
+import { PageLoader } from '@/components/ui/spinner';
+import { UserAvatar } from '@/components/user-avatar';
+import { cn } from '@/lib/utils';
 import type { Conversation } from '@/types/messages';
 import type { User as UserType } from '@/types/task';
 import { toast } from 'sonner';
@@ -30,6 +34,7 @@ export default function MessagesPage() {
   const [newType, setNewType] = useState<'dm' | 'group'>('dm');
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [creating, setCreating] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const fetchConversations = useCallback(async () => {
@@ -50,7 +55,6 @@ export default function MessagesPage() {
       if (!user) return;
       setCurrentUserId(user.id);
 
-      // Fetch users for new conversation dialog
       const { data: allUsers } = await supabase
         .from('users')
         .select('id, name, role')
@@ -62,7 +66,6 @@ export default function MessagesPage() {
 
     init();
 
-    // Realtime subscription — re-fetch on any message insert
     const channel = supabase
       .channel('messages-conversations')
       .on(
@@ -83,26 +86,33 @@ export default function MessagesPage() {
     };
   }, [supabase, fetchConversations]);
 
+  function closeNewDialog() {
+    setShowNewDialog(false);
+    setSelectedUsers([]);
+    setSearchQuery('');
+  }
+
   async function handleCreate() {
     if (selectedUsers.length === 0) {
       toast.error('Select at least one person');
       return;
     }
 
+    setCreating(true);
     const form = new FormData();
     form.set('type', newType);
     form.set('participant_ids', JSON.stringify(selectedUsers));
 
     const result = await createConversation(form);
+    setCreating(false);
+
     if ('error' in result) {
       toast.error(result.error);
       return;
     }
 
     toast.success('Conversation created');
-    setShowNewDialog(false);
-    setSelectedUsers([]);
-    // Navigate directly to the new conversation
+    closeNewDialog();
     if (result.conversation_id) {
       router.push(`/dashboard/messages/${result.conversation_id}`);
     }
@@ -113,9 +123,7 @@ export default function MessagesPage() {
       setSelectedUsers([userId]);
     } else {
       setSelectedUsers((prev) =>
-        prev.includes(userId)
-          ? prev.filter((id) => id !== userId)
-          : [...prev, userId]
+        prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
       );
     }
   }
@@ -126,26 +134,25 @@ export default function MessagesPage() {
       (u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
   );
 
-  const getTypeIcon = (type: string) => {
+  function typeMeta(type: string) {
     switch (type) {
       case 'broadcast':
-        return <Megaphone size={16} className="text-amber-500" />;
+        return { Icon: Megaphone, tone: 'bg-status-review text-white', label: 'Broadcast' };
       case 'group':
-        return <Users size={16} className="text-blue-500" />;
+        return { Icon: Users, tone: 'bg-secondary text-secondary-foreground', label: 'Group' };
       default:
-        return <User size={16} className="text-muted-foreground" />;
+        return { Icon: User, tone: 'bg-muted text-muted-foreground', label: 'Direct' };
     }
-  };
+  }
 
-  const getConversationTitle = (conv: Conversation) => {
+  function getConversationTitle(conv: Conversation) {
     if (conv.title) return conv.title;
     if (conv.type === 'broadcast') return 'Staff Broadcast';
-    // DM: show the other person's name
     const other = conv.participants?.find((p) => p.user_id !== currentUserId);
     return other?.user?.name ?? 'Conversation';
-  };
+  }
 
-  const formatTime = (ts: string | null) => {
+  function formatTime(ts: string | null) {
     if (!ts) return '';
     const d = new Date(ts);
     const now = new Date();
@@ -157,229 +164,230 @@ export default function MessagesPage() {
       return d.toLocaleDateString([], { weekday: 'short' });
     }
     return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
-  };
+  }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-foreground" />
-      </div>
-    );
+    return <PageLoader label="Loading messages" />;
   }
 
   return (
-    <div className="max-w-3xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold text-foreground">Messages</h1>
-        <Button onClick={() => setShowNewDialog(true)} size="sm">
-          <Plus size={16} className="mr-1.5" />
-          New Message
+    <div className="mx-auto max-w-3xl space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
+          {conversations.length} {conversations.length === 1 ? 'conversation' : 'conversations'}
+        </p>
+        <Button size="sm" onClick={() => setShowNewDialog(true)}>
+          <Plus size={15} />
+          New message
         </Button>
       </div>
 
-      {/* Conversation list */}
       {conversations.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-            <MessageSquare size={28} className="text-muted-foreground" />
-          </div>
-          <p className="text-sm text-muted-foreground mb-4">No conversations yet</p>
-          <Button onClick={() => setShowNewDialog(true)} variant="outline" size="sm">
-            <Plus size={14} className="mr-1.5" />
-            Start a conversation
-          </Button>
-        </div>
+        <EmptyState
+          icon={MessageSquare}
+          title="No conversations yet"
+          description="Start a direct message or a group thread with other staff members."
+          action={
+            <Button size="sm" onClick={() => setShowNewDialog(true)}>
+              <Plus size={15} />
+              Start a conversation
+            </Button>
+          }
+        />
       ) : (
-        <div className="space-y-1">
+        <ul className="overflow-hidden rounded-xl border border-border bg-card shadow-xs">
           {conversations.map((conv) => {
             const otherParticipant = conv.participants?.find(
               (p) => p.user_id !== currentUserId
             );
+            const unread = (conv.unread_count ?? 0) > 0;
+            const { Icon, tone } = typeMeta(conv.type);
+            const displayName = getConversationTitle(conv);
+
             return (
-              <Link
-                key={conv.id}
-                href={`/dashboard/messages/${conv.id}`}
-                className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors group"
-              >
-                {/* Avatar */}
-                <div className="relative flex-shrink-0">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-sm font-medium text-secondary">
-                    {conv.type === 'broadcast'
-                      ? '#'
-                      : otherParticipant
-                        ? otherParticipant.user?.name?.charAt(0) ?? '?'
-                        : conv.participants?.[0]?.user?.name?.charAt(0) ?? '?'}
-                  </div>
-                  {getTypeIcon(conv.type)}
-                </div>
-
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-foreground truncate">
-                      {getConversationTitle(conv)}
-                    </span>
-                    {conv.type === 'broadcast' && (
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                        Broadcast
-                      </Badge>
+              <li key={conv.id} className="border-b border-border last:border-b-0">
+                <Link
+                  href={`/dashboard/messages/${conv.id}`}
+                  className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-muted"
+                >
+                  <span className="relative shrink-0">
+                    {conv.type === 'broadcast' ? (
+                      <span className="flex size-10 items-center justify-center rounded-full bg-status-review-soft text-status-review-fg">
+                        <Megaphone size={17} />
+                      </span>
+                    ) : (
+                      <UserAvatar
+                        name={otherParticipant?.user?.name ?? displayName}
+                        size="lg"
+                      />
                     )}
-                  </div>
-                  <p className="text-xs text-muted-foreground truncate mt-0.5">
-                    {conv.last_message?.content ?? 'No messages yet'}
-                  </p>
-                </div>
-
-                {/* Meta */}
-                <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                  <span className="text-[11px] text-muted-foreground">
-                    {formatTime(conv.last_message_at)}
-                  </span>
-                  {conv.unread_count && conv.unread_count > 0 ? (
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[11px] font-medium text-primary-foreground">
-                      {conv.unread_count}
+                    {/* The type marker used to render *below* the avatar
+                        because nothing positioned it. */}
+                    <span
+                      className={cn(
+                        'absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full ring-2 ring-card',
+                        tone
+                      )}
+                    >
+                      <Icon size={9} />
                     </span>
-                  ) : null}
-                </div>
-              </Link>
+                  </span>
+
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-2">
+                      <span
+                        className={cn(
+                          'truncate text-sm text-foreground',
+                          unread ? 'font-extrabold' : 'font-semibold'
+                        )}
+                      >
+                        {displayName}
+                      </span>
+                    </span>
+                    <span
+                      className={cn(
+                        'mt-0.5 block truncate text-xs',
+                        unread ? 'font-semibold text-foreground' : 'text-muted-foreground'
+                      )}
+                    >
+                      {conv.last_message?.content ?? 'No messages yet'}
+                    </span>
+                  </span>
+
+                  <span className="flex shrink-0 flex-col items-end gap-1.5">
+                    <span className="text-[11px] font-medium text-muted-foreground tabular-nums">
+                      {formatTime(conv.last_message_at)}
+                    </span>
+                    {unread && (
+                      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold text-primary-foreground tabular-nums">
+                        {conv.unread_count}
+                      </span>
+                    )}
+                  </span>
+                </Link>
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
 
-      {/* New Conversation Dialog */}
-      {showNewDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="fixed inset-0 bg-black/30"
-            onClick={() => {
-              setShowNewDialog(false);
-              setSelectedUsers([]);
-            }}
-          />
-          <div className="relative z-10 w-full max-w-md mx-4 bg-card rounded-xl shadow-xl p-5">
-            <h2 className="text-base font-semibold text-foreground mb-4">
-              New Conversation
-            </h2>
+      {/* ---------------- New conversation ---------------- */}
+      <Dialog
+        open={showNewDialog}
+        onOpenChange={(open) => (open ? setShowNewDialog(true) : closeNewDialog())}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>New conversation</DialogTitle>
+            <DialogDescription>
+              Pick one person for a direct message, or several for a group thread.
+            </DialogDescription>
+          </DialogHeader>
 
-            {/* Type toggle */}
-            <div className="flex gap-1 mb-4 bg-muted rounded-lg p-1">
+          <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
+            {(['dm', 'group'] as const).map((type) => (
               <button
+                key={type}
+                type="button"
+                aria-pressed={newType === type}
                 onClick={() => {
-                  setNewType('dm');
+                  setNewType(type);
                   setSelectedUsers([]);
                 }}
-                className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                  newType === 'dm'
-                    ? 'bg-card text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-secondary'
-                }`}
+                className={cn(
+                  'rounded-md py-1.5 text-sm font-semibold transition-colors',
+                  newType === type
+                    ? 'bg-card text-foreground shadow-xs'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
               >
-                Direct
+                {type === 'dm' ? 'Direct' : 'Group'}
               </button>
+            ))}
+          </div>
+
+          <div className="relative">
+            <Search
+              size={16}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search people…"
+              className="pl-9 pr-9"
+              aria-label="Search people"
+            />
+            {searchQuery && (
               <button
-                onClick={() => {
-                  setNewType('group');
-                  setSelectedUsers([]);
-                }}
-                className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                  newType === 'group'
-                    ? 'bg-card text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-secondary'
-                }`}
+                type="button"
+                onClick={() => setSearchQuery('')}
+                aria-label="Clear search"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
-                Group
+                <X size={14} />
               </button>
-            </div>
+            )}
+          </div>
 
-            {/* Search */}
-            <div className="relative mb-3">
-              <Search
-                size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-              />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search people..."
-                className="pl-9"
-              />
-            </div>
-
-            {/* User list */}
-            <div className="max-h-56 overflow-y-auto space-y-0.5 mb-4">
-              {filteredUsers.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-6">
-                  No people found
-                </p>
-              ) : (
-                filteredUsers.map((u) => (
+          <div className="-mx-1 max-h-64 space-y-1 overflow-y-auto px-1">
+            {filteredUsers.length === 0 ? (
+              <EmptyState size="sm" icon={Users} title="No people found" />
+            ) : (
+              filteredUsers.map((u) => {
+                const selected = selectedUsers.includes(u.id);
+                return (
                   <button
                     key={u.id}
+                    type="button"
+                    aria-pressed={selected}
                     onClick={() => toggleUser(u.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
-                      selectedUsers.includes(u.id)
-                        ? 'bg-primary text-primary-foreground'
-                        : 'hover:bg-background text-secondary'
-                    }`}
+                    className={cn(
+                      'flex w-full items-center gap-3 rounded-lg border px-2.5 py-2 text-left transition-colors',
+                      selected
+                        ? 'border-secondary/40 bg-secondary-soft'
+                        : 'border-transparent hover:bg-muted'
+                    )}
                   >
-                    <div
-                      className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium ${
-                        selectedUsers.includes(u.id)
-                          ? 'bg-secondary text-secondary-foreground'
-                          : 'bg-muted text-secondary'
-                      }`}
-                    >
-                      {u.name?.charAt(0) ?? '?'}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">{u.name}</p>
-                      <p
-                        className={`text-xs ${
-                          selectedUsers.includes(u.id)
-                            ? 'text-primary-foreground/70'
-                            : 'text-muted-foreground'
-                        }`}
-                      >
+                    <UserAvatar name={u.name} size="sm" />
+                    <span className="min-w-0 flex-1 leading-tight">
+                      <span className="block truncate text-sm font-semibold text-foreground">
+                        {u.name}
+                      </span>
+                      <span className="block text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                         {u.role}
-                      </p>
-                    </div>
+                      </span>
+                    </span>
+                    {selected && (
+                      <span className="size-2 shrink-0 rounded-full bg-secondary" />
+                    )}
                   </button>
-                ))
-              )}
-            </div>
-
-            {/* Selected counter for groups */}
-            {newType === 'group' && selectedUsers.length > 0 && (
-              <p className="text-xs text-muted-foreground mb-3">
-                {selectedUsers.length} selected
-              </p>
+                );
+              })
             )}
+          </div>
 
-            {/* Actions */}
-            <div className="flex gap-2 justify-end">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setShowNewDialog(false);
-                  setSelectedUsers([]);
-                }}
-              >
+          <div className="-mx-5 -mb-5 flex items-center justify-between gap-2 border-t border-border bg-subtle p-4 sm:-mx-6 sm:-mb-6 sm:p-5">
+            <span className="text-xs text-muted-foreground">
+              {selectedUsers.length > 0
+                ? `${selectedUsers.length} selected`
+                : 'Nobody selected yet'}
+            </span>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={closeNewDialog} disabled={creating}>
                 Cancel
               </Button>
               <Button
                 size="sm"
                 onClick={handleCreate}
-                disabled={selectedUsers.length === 0}
+                disabled={selectedUsers.length === 0 || creating}
               >
-                Start
+                {creating ? 'Starting…' : 'Start'}
               </Button>
             </div>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

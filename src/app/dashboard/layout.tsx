@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import DashboardLayout from '@/components/sidebar';
+import { PageLoader } from '@/components/ui/spinner';
 import { User } from '@/types/task';
 
 export default function DashboardWrapper({ children }: { children: React.ReactNode }) {
@@ -37,11 +38,8 @@ export default function DashboardWrapper({ children }: { children: React.ReactNo
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-foreground" />
-          <p className="text-sm text-muted-foreground">Loading...</p>
-        </div>
+      <div className="min-h-svh bg-background">
+        <PageLoader label="Loading your portal" className="min-h-svh" />
       </div>
     );
   }

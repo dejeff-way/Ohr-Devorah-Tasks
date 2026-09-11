@@ -1,15 +1,20 @@
 'use client';
 
 import { useState } from 'react';
-import { format } from 'date-fns';
-import { Calendar, Clock, MoreHorizontal, Pencil, Trash2, Users, Layers, CheckCircle2, Circle, ArrowRight } from 'lucide-react';
+import { format, isToday, isTomorrow } from 'date-fns';
 import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+  ArrowRight,
+  CalendarDays,
+  CheckCircle2,
+  Circle,
+  MoreHorizontal,
+  Pencil,
+  Repeat,
+  Trash2,
+  Users,
+} from 'lucide-react';
+
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -24,12 +29,15 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { TaskForm } from '@/components/task-form';
+import { MetadataDisplay } from '@/components/metadata-display';
+import { TaskActivityLog } from '@/components/task-activity';
+import { MetaChip, OverdueBadge, StatusBadge } from '@/components/status-badge';
+import { AvatarStack, UserAvatar } from '@/components/user-avatar';
 import { deleteTask, updateCompletionLevel } from '@/app/dashboard/actions';
 import { Task, User, MetadataEntry } from '@/types/task';
-import { MetadataDisplay } from '@/components/metadata-display';
+import { recurrenceLabel, statusConfig } from '@/lib/status';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -40,36 +48,28 @@ interface TaskCardProps {
   isAdmin: boolean;
 }
 
-const levelConfig = {
-  pending: {
-    label: 'Pending',
-    color: 'bg-muted text-secondary border-border',
-    dot: 'bg-muted-foreground',
-  },
-  in_progress: {
-    label: 'In Progress',
-    color: 'bg-blue-50 text-blue-700 border-blue-200',
-    dot: 'bg-blue-500',
-  },
-  review: {
-    label: 'Review',
-    color: 'bg-amber-50 text-amber-700 border-amber-200',
-    dot: 'bg-amber-500',
-  },
-  completed: {
-    label: 'Completed',
-    color: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    dot: 'bg-emerald-500',
-  },
-};
+function friendlyDate(date: Date) {
+  if (isToday(date)) return 'Today';
+  if (isTomorrow(date)) return 'Tomorrow';
+  return format(date, 'MMM d, yyyy');
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="mb-2 text-[0.7rem] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+      {children}
+    </p>
+  );
+}
 
 export function TaskCard({ task, users, currentUserId, isAdmin }: TaskCardProps) {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [advancing, setAdvancing] = useState(false);
 
-  const config = levelConfig[task.completion_level];
+  const config = statusConfig(task.completion_level);
   const assigneeNames = task.assignees?.map((a) => a.name) ?? [];
   const dateObj = new Date(task.date_required);
   const isOverdue = dateObj < new Date() && task.completion_level !== 'completed';
@@ -77,18 +77,20 @@ export function TaskCard({ task, users, currentUserId, isAdmin }: TaskCardProps)
   const isAssignee = task.assignees?.some((a) => a.id === currentUserId) ?? false;
   const canEdit = isAdmin || isCreator || isAssignee;
 
-  const nextLevels: Record<string, string> = {
-    pending: 'in_progress',
-    in_progress: 'review',
-    review: 'completed',
-  };
+  const steps = task.steps ? [...task.steps].sort((a, b) => a.step_order - b.step_order) : [];
+  const doneSteps = steps.filter((s) => s.is_completed).length;
+
+  const nextStatus = config.next;
+  const nextLabel = nextStatus ? statusConfig(nextStatus).label : null;
 
   async function handleAdvance() {
-    const next = nextLevels[task.completion_level];
-    if (!next) return;
-    const result = await updateCompletionLevel(task.id, next);
+    if (!nextStatus || advancing) return;
+    setAdvancing(true);
+    const result = await updateCompletionLevel(task.id, nextStatus);
+    setAdvancing(false);
     if (result.error) toast.error(result.error);
-    else toast.success(`Moved to ${nextLevels[next] || next}`);
+    // The old version reported the status *after* the one it had just set.
+    else toast.success(`Moved to ${statusConfig(nextStatus).label}`);
   }
 
   async function handleDelete() {
@@ -102,119 +104,161 @@ export function TaskCard({ task, users, currentUserId, isAdmin }: TaskCardProps)
 
   return (
     <>
-      {/* --- Detail Dialog (click on card to open) --- */}
+      {/* ---------------- Detail dialog ---------------- */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-xl">
           <DialogHeader>
-            <div className="flex items-center gap-2 mb-1">
-              <span className={cn('h-2.5 w-2.5 rounded-full', config.dot)} />
-              <Badge variant="outline" className={cn('text-xs font-medium px-2 py-0', config.color)}>
-                {config.label}
-              </Badge>
-              {task.recurrence !== 'none' && (
-                <Badge variant="outline" className="text-xs bg-muted text-muted-foreground">
-                  {task.recurrence}
-                </Badge>
+            <div className="mb-1 flex flex-wrap items-center gap-1.5">
+              <StatusBadge level={task.completion_level} size="md" />
+              {task.recurrence && task.recurrence !== 'none' && (
+                <MetaChip>
+                  <Repeat size={11} />
+                  {recurrenceLabel(task.recurrence)}
+                </MetaChip>
               )}
+              {isOverdue && <OverdueBadge />}
             </div>
-            <DialogTitle className="text-xl font-extrabold tracking-tight">{task.title}</DialogTitle>
-            <DialogDescription className="text-sm font-semibold text-muted-foreground">
+            <DialogTitle className="text-xl">{task.title}</DialogTitle>
+            <DialogDescription className="flex items-center gap-1.5 text-sm">
+              <CalendarDays size={14} className="shrink-0" />
               Due {format(dateObj, 'EEEE, MMMM d, yyyy')}
-              {isOverdue && <span className="text-red-500 ml-2">Overdue</span>}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-5 mt-2">
-            {/* Description */}
+          <div className="space-y-6">
             {task.description && (
-              <div>
-                <p className="text-xs font-extrabold uppercase tracking-wide text-muted-foreground mb-1">Description</p>
-                <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{task.description}</p>
-              </div>
+              <section>
+                <SectionLabel>Description</SectionLabel>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+                  {task.description}
+                </p>
+              </section>
             )}
 
-            {/* Assignees */}
-            <div>
-              <p className="text-xs font-extrabold uppercase tracking-wide text-muted-foreground mb-2">Assigned to</p>
-              <div className="flex flex-wrap gap-2">
-                {task.assignees?.map((a) => (
-                  <div key={a.id} className="flex items-center gap-2 rounded-xl border-2 border-border bg-muted px-3 py-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-extrabold text-primary-foreground">
-                      {a.name.charAt(0)}
-                    </div>
-                    <div>
-                      <p className="text-sm font-extrabold text-foreground">{a.name}</p>
-                      <p className="text-[11px] font-semibold text-muted-foreground">{a.role}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Steps */}
-            {task.steps && task.steps.length > 0 && (
-              <div>
-                <p className="text-xs font-extrabold uppercase tracking-wide text-muted-foreground mb-2">Steps</p>
-                <div className="space-y-1.5">
-                  {task.steps.sort((a, b) => a.step_order - b.step_order).map((step) => (
+            {task.assignees && task.assignees.length > 0 && (
+              <section>
+                <SectionLabel>Assigned to</SectionLabel>
+                <div className="flex flex-wrap gap-2">
+                  {task.assignees.map((a) => (
                     <div
-                      key={step.id}
-                      className={cn(
-                        'flex items-center gap-3 rounded-xl border-2 px-3 py-2.5',
-                        step.is_completed ? 'border-border bg-muted' : 'border-border bg-card'
-                      )}
+                      key={a.id}
+                      className="flex items-center gap-2.5 rounded-lg border border-border bg-subtle py-1.5 pl-1.5 pr-3"
                     >
-                      {step.is_completed ? (
-                        <CheckCircle2 size={18} className="text-emerald-500 flex-shrink-0" />
-                      ) : (
-                        <Circle size={18} className="text-muted-foreground flex-shrink-0" />
-                      )}
-                      <span className={cn('text-sm font-semibold flex-1', step.is_completed && 'line-through text-muted-foreground')}>
-                        {step.title}
-                      </span>
-                      {step.assignee && (
-                        <span className="text-xs font-bold text-muted-foreground">{step.assignee.name}</span>
-                      )}
+                      <UserAvatar name={a.name} size="sm" />
+                      <div className="leading-tight">
+                        <p className="text-sm font-semibold text-foreground">{a.name}</p>
+                        <p className="text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                          {a.role}
+                        </p>
+                      </div>
                     </div>
                   ))}
                 </div>
-              </div>
+              </section>
             )}
 
-            {/* Metadata */}
+            {steps.length > 0 && (
+              <section>
+                <div className="mb-2 flex items-baseline justify-between gap-3">
+                  <SectionLabel>Steps</SectionLabel>
+                  <span className="text-[0.7rem] font-bold tabular-nums text-muted-foreground">
+                    {doneSteps}/{steps.length}
+                  </span>
+                </div>
+                <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-status-done transition-[width]"
+                    style={{ width: `${(doneSteps / steps.length) * 100}%` }}
+                  />
+                </div>
+                <ul className="space-y-1.5">
+                  {steps.map((step) => (
+                    <li
+                      key={step.id}
+                      className={cn(
+                        'flex items-center gap-2.5 rounded-lg border border-border px-3 py-2.5',
+                        step.is_completed ? 'bg-subtle' : 'bg-card'
+                      )}
+                    >
+                      {step.is_completed ? (
+                        <CheckCircle2 size={17} className="shrink-0 text-status-done" />
+                      ) : (
+                        <Circle size={17} className="shrink-0 text-muted-foreground/60" />
+                      )}
+                      <span
+                        className={cn(
+                          'flex-1 text-sm font-medium',
+                          step.is_completed && 'text-muted-foreground line-through'
+                        )}
+                      >
+                        {step.title}
+                      </span>
+                      {step.assignee && (
+                        <span className="text-xs font-semibold text-muted-foreground">
+                          {step.assignee.name}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
             {task.metadata && task.metadata.length > 0 && (
-              <div>
-                <p className="text-xs font-extrabold uppercase tracking-wide text-muted-foreground mb-2">Details</p>
+              <section>
+                <SectionLabel>Details</SectionLabel>
                 <MetadataDisplay entries={task.metadata as MetadataEntry[]} />
-              </div>
+              </section>
             )}
 
-            {/* Dates */}
-            <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-              <span className="font-semibold">Created {format(new Date(task.created_at), 'MMM d, yyyy')}</span>
+            {detailOpen && (
+              <TaskActivityLog
+                taskId={task.id}
+                currentUserId={currentUserId}
+                isAdmin={isAdmin}
+                canLog={canEdit}
+              />
+            )}
+
+            <p className="border-t border-border pt-4 text-xs text-muted-foreground">
+              Created {format(new Date(task.created_at), 'MMM d, yyyy')}
               {task.updated_at !== task.created_at && (
-                <span className="font-semibold">Updated {format(new Date(task.updated_at), 'MMM d, yyyy')}</span>
+                <> · Updated {format(new Date(task.updated_at), 'MMM d, yyyy')}</>
               )}
-            </div>
+            </p>
           </div>
 
-          {/* Action buttons */}
           {canEdit && (
-            <div className="flex gap-2 pt-2 border-t-2 border-border mt-2">
-              <Button variant="outline" size="sm" onClick={() => { setDetailOpen(false); setEditOpen(true); }}>
-                <Pencil size={14} className="mr-1.5" />
-                Edit
-              </Button>
-              {task.completion_level !== 'completed' && (
-                <Button variant="outline" size="sm" onClick={handleAdvance}>
-                  <ArrowRight size={14} className="mr-1.5" />
-                  Move to {nextLevels[task.completion_level] ? levelConfig[nextLevels[task.completion_level] as keyof typeof levelConfig]?.label : 'Next'}
+            <div className="-mx-5 -mb-5 flex flex-wrap justify-end gap-2 border-t border-border bg-subtle p-4 sm:-mx-6 sm:-mb-6 sm:p-5">
+              {(isAdmin || isCreator) && (
+                <Button
+                  variant="destructive-outline"
+                  size="sm"
+                  className="mr-auto"
+                  onClick={() => {
+                    setDetailOpen(false);
+                    setDeleteConfirm(true);
+                  }}
+                >
+                  <Trash2 size={14} />
+                  Delete
                 </Button>
               )}
-              {(isAdmin || isCreator) && (
-                <Button variant="destructive" size="sm" onClick={() => { setDetailOpen(false); setDeleteConfirm(true); }}>
-                  <Trash2 size={14} className="mr-1.5" />
-                  Delete
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setDetailOpen(false);
+                  setEditOpen(true);
+                }}
+              >
+                <Pencil size={14} />
+                Edit
+              </Button>
+              {nextStatus && (
+                <Button size="sm" onClick={handleAdvance} disabled={advancing}>
+                  <ArrowRight size={14} />
+                  Move to {nextLabel}
                 </Button>
               )}
             </div>
@@ -222,156 +266,168 @@ export function TaskCard({ task, users, currentUserId, isAdmin }: TaskCardProps)
         </DialogContent>
       </Dialog>
 
-      {/* --- Compact Card --- */}
+      {/* ---------------- Compact card ---------------- */}
       <Card
-        className="border-border bg-card cursor-pointer hover:border-secondary transition-colors"
+        size="sm"
+        role="button"
+        tabIndex={0}
+        aria-label={`Open task ${task.title}`}
+        className="group relative cursor-pointer gap-0 py-0 transition-shadow hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/30 focus-visible:outline-none"
         onClick={() => setDetailOpen(true)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setDetailOpen(true);
+          }
+        }}
       >
-        <CardHeader className="flex flex-row items-start justify-between gap-2 px-4 pt-4 pb-2">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <span className={cn('h-2 w-2 rounded-full', config.dot)} />
-              <Badge
-                variant="outline"
-                className={cn('text-xs font-medium px-2 py-0', config.color)}
-              >
-                {config.label}
-              </Badge>
+        {/* Status rail — the fastest read on a dense board. */}
+        <span
+          aria-hidden
+          className={cn('absolute inset-y-0 left-0 w-1', config.rule)}
+        />
+
+        <CardHeader className="flex flex-row items-start justify-between gap-2 py-3 pl-5">
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <StatusBadge level={task.completion_level} />
+              {task.recurrence && task.recurrence !== 'none' && (
+                <MetaChip>
+                  <Repeat size={10} />
+                  {recurrenceLabel(task.recurrence)}
+                </MetaChip>
+              )}
             </div>
-            <h3 className="text-sm font-semibold text-foreground leading-snug truncate">
+            <h3
+              className={cn(
+                'text-sm font-bold leading-snug text-foreground',
+                task.completion_level === 'completed' && 'text-muted-foreground line-through'
+              )}
+            >
               {task.title}
             </h3>
           </div>
 
           {canEdit && (
             <div onClick={(e) => e.stopPropagation()}>
-            <DropdownMenu>
-              <DropdownMenuTrigger>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 shrink-0 text-muted-foreground hover:text-secondary"
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="Task actions"
+                      className="-mr-1 opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100 max-sm:opacity-100"
+                    />
+                  }
                 >
                   <MoreHorizontal size={16} />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44">
-                <DropdownMenuItem onClick={() => setEditOpen(true)}>
-                  <Pencil size={14} className="mr-2" />
-                  Edit Task
-                </DropdownMenuItem>
-                {task.completion_level !== 'completed' && (
-                  <DropdownMenuItem onClick={handleAdvance}>
-                    <Clock size={14} className="mr-2" />
-                    Move to{' '}
-                    {nextLevels[task.completion_level]
-                      ? levelConfig[nextLevels[task.completion_level] as keyof typeof levelConfig]?.label
-                      : 'Next'}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                    <Pencil size={14} />
+                    Edit task
                   </DropdownMenuItem>
-                )}
-                {(isAdmin || isCreator) && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      className="text-red-600 focus:text-red-600"
-                      onClick={() => setDeleteConfirm(true)}
-                    >
-                      <Trash2 size={14} className="mr-2" />
-                      Delete
+                  {nextStatus && (
+                    <DropdownMenuItem onClick={handleAdvance}>
+                      <ArrowRight size={14} />
+                      Move to {nextLabel}
                     </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  )}
+                  {(isAdmin || isCreator) && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        variant="destructive"
+                        onClick={() => setDeleteConfirm(true)}
+                      >
+                        <Trash2 size={14} />
+                        Delete
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           )}
         </CardHeader>
 
-        {task.description && (
-          <CardContent className="px-4 py-1">
-            <p className="text-sm text-secondary line-clamp-2">{task.description}</p>
+        {(task.description || (task.metadata && task.metadata.length > 0) || steps.length > 0) && (
+          <CardContent className="space-y-2 pb-3 pl-5">
+            {task.description && (
+              <p className="line-clamp-2 text-[0.8125rem] leading-relaxed text-muted-foreground">
+                {task.description}
+              </p>
+            )}
+
+            {steps.length > 0 && (
+              <div className="flex items-center gap-2">
+                <div className="h-1 flex-1 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-status-done"
+                    style={{ width: `${(doneSteps / steps.length) * 100}%` }}
+                  />
+                </div>
+                <span className="text-[0.7rem] font-bold tabular-nums text-muted-foreground">
+                  {doneSteps}/{steps.length}
+                </span>
+              </div>
+            )}
+
+            {task.metadata && task.metadata.length > 0 && (
+              <MetadataDisplay entries={task.metadata as MetadataEntry[]} compact />
+            )}
           </CardContent>
         )}
 
-        {task.metadata && task.metadata.length > 0 && (
-          <CardContent className="px-4 pb-1 pt-1">
-            <MetadataDisplay entries={task.metadata as MetadataEntry[]} compact />
-          </CardContent>
-        )}
-
-        <CardFooter className="flex items-center justify-between px-4 py-3 border-t border-border mt-2">
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <Calendar size={12} />
-              {format(dateObj, 'MMM d, yyyy')}
-              {isOverdue && (
-                <span className="text-red-500 font-medium ml-1">Overdue</span>
-              )}
-            </span>
-          </div>
+        <CardFooter className="justify-between gap-3 pl-5">
+          <span
+            className={cn(
+              'inline-flex items-center gap-1.5 text-xs font-semibold',
+              isOverdue ? 'text-destructive' : 'text-muted-foreground'
+            )}
+          >
+            <CalendarDays size={13} className="shrink-0" />
+            {friendlyDate(dateObj)}
+            {isOverdue && <span className="font-bold">· Overdue</span>}
+          </span>
 
           {assigneeNames.length > 0 && (
-            <div className="flex items-center gap-1">
-              <Users size={12} className="text-muted-foreground" />
-              <div className="flex -space-x-1.5">
-                {assigneeNames.slice(0, 3).map((name, i) => (
-                  <div
-                    key={i}
-                    className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-[10px] font-medium text-secondary ring-2 ring-white"
-                    title={name}
-                  >
-                    {name.charAt(0)}
-                  </div>
-                ))}
-                {assigneeNames.length > 3 && (
-                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-[10px] font-medium text-muted-foreground ring-2 ring-white">
-                    +{assigneeNames.length - 3}
-                  </div>
-                )}
-              </div>
-            </div>
+            <span className="flex items-center gap-1.5" title={assigneeNames.join(', ')}>
+              <Users size={13} className="text-muted-foreground" />
+              <AvatarStack names={assigneeNames} />
+            </span>
           )}
         </CardFooter>
       </Card>
 
-      {/* Edit Dialog */}
+      {/* ---------------- Edit ---------------- */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="sm:max-w-xl">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle>Edit Task</DialogTitle>
-            <DialogDescription>Update the task details below.</DialogDescription>
+            <DialogTitle>Edit task</DialogTitle>
+            <DialogDescription>Update the details below and save.</DialogDescription>
           </DialogHeader>
-          <TaskForm
-            task={task}
-            users={users}
-            onSuccess={() => setEditOpen(false)}
-          />
+          <TaskForm task={task} users={users} onSuccess={() => setEditOpen(false)} />
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
+      {/* ---------------- Delete ---------------- */}
       <Dialog open={deleteConfirm} onOpenChange={setDeleteConfirm}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Delete Task</DialogTitle>
+            <DialogTitle>Delete task</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete &ldquo;{task.title}&rdquo;? This action cannot be undone.
+              &ldquo;{task.title}&rdquo; will be removed for everyone it is assigned to.
+              This cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setDeleteConfirm(false)}
-              disabled={deleting}
-            >
+            <Button variant="outline" onClick={() => setDeleteConfirm(false)} disabled={deleting}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
-              {deleting ? 'Deleting...' : 'Delete'}
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+              {deleting ? 'Deleting…' : 'Delete task'}
             </Button>
           </div>
         </DialogContent>

@@ -4,12 +4,23 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ---------------------------------------------------------------------------
+   Ohr Devora — design tokens
+   ---------------------------------------------------------------------------
+   One source of truth for colour, radius and type. Components should reference
+   these tokens (bg-card, text-muted-foreground, bg-status-review-soft, ...)
+   instead of reaching for raw palette classes like `bg-blue-50`, so that the
+   task board, the calendar and the cards can never drift apart again.
+--------------------------------------------------------------------------- */
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
   --font-sans: var(--font-nunito-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --font-heading: var(--font-nunito-sans), ui-sans-serif, system-ui, sans-serif;
+
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -18,125 +29,296 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
+
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-soft: var(--destructive-soft);
+
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary: var(--secondary);
+  --color-secondary-hover: var(--secondary-hover);
+  --color-secondary-soft: var(--secondary-soft);
+
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-soft: var(--primary-soft);
+
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+
+  /* Brand highlight — used deliberately, never as a hover surface. */
+  --color-brand-cyan: var(--brand-cyan);
+  --color-brand-cyan-soft: var(--brand-cyan-soft);
+
+  /* Task status scale — shared by board, cards, calendar and filters. */
+  --color-status-pending: var(--status-pending);
+  --color-status-pending-soft: var(--status-pending-soft);
+  --color-status-pending-fg: var(--status-pending-fg);
+
+  --color-status-progress: var(--status-progress);
+  --color-status-progress-soft: var(--status-progress-soft);
+  --color-status-progress-fg: var(--status-progress-fg);
+
+  --color-status-review: var(--status-review);
+  --color-status-review-soft: var(--status-review-soft);
+  --color-status-review-fg: var(--status-review-fg);
+
+  --color-status-done: var(--status-done);
+  --color-status-done-soft: var(--status-done-soft);
+  --color-status-done-fg: var(--status-done-fg);
+
+  --radius-sm: calc(var(--radius) * 0.55);
+  --radius-md: calc(var(--radius) * 0.75);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.35);
+  --radius-xl: calc(var(--radius) * 1.3);
   --radius-2xl: calc(var(--radius) * 1.7);
-  --radius-3xl: calc(var(--radius) * 2.1);
-  --radius-4xl: calc(var(--radius) * 2.5);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.8);
+
+  --shadow-xs: 0 1px 2px 0 rgb(16 23 42 / 0.04);
+  --shadow-sm: 0 1px 2px 0 rgb(16 23 42 / 0.05), 0 1px 3px 0 rgb(16 23 42 / 0.05);
+  --shadow-md: 0 2px 4px -1px rgb(16 23 42 / 0.05), 0 6px 16px -4px rgb(16 23 42 / 0.08);
+  --shadow-lg: 0 4px 8px -2px rgb(16 23 42 / 0.06), 0 16px 32px -8px rgb(16 23 42 / 0.12);
 }
 
 :root {
-  /* Ohr Devora: clean school portal, solid colors, white canvas */
-  --background: #ffffff;
-  --foreground: #182033;
+  /* Canvas is a hair off-white so that white cards read as surfaces. */
+  --background: #f6f8fb;
+  --foreground: #101728;
 
   --card: #ffffff;
-  --card-foreground: #182033;
+  --card-foreground: #101728;
   --popover: #ffffff;
-  --popover-foreground: #182033;
+  --popover-foreground: #101728;
 
-  /* User-supplied brand colors, used intentionally rather than sprayed everywhere */
-  --primary: #de182c;              /* action red */
+  /* Brand — red drives action, blue drives navigation and focus. */
+  --primary: #de182c;
+  --primary-hover: #bb1224;
   --primary-foreground: #ffffff;
-  --secondary: #1806a1;            /* royal school blue */
-  --secondary-foreground: #ffffff;
-  --accent: #07f0e4;               /* bright cyan accent */
-  --accent-foreground: #101827;
+  --primary-soft: #fdecee;
 
-  /* Supporting school-friendly colors */
-  --muted: #f5f7fb;
-  --muted-foreground: #647084;
+  --secondary: #1806a1;
+  --secondary-hover: #130480;
+  --secondary-foreground: #ffffff;
+  --secondary-soft: #ebe9fb;
+
+  /* `accent` is the hover/active surface used by every menu, select and
+     command primitive, so it must stay quiet. The bright brand cyan lives
+     in its own token and is applied on purpose. */
+  --accent: #eef1f7;
+  --accent-foreground: #101728;
+  --brand-cyan: #07d6cc;
+  --brand-cyan-soft: #e0fbf9;
+
+  --muted: #f1f4f9;
+  --muted-foreground: #5c687c;
+  --subtle: #fafbfd;
+
   --destructive: #de182c;
-  --border: #dce3ef;
-  --input: #cfd8e6;
+  --destructive-foreground: #ffffff;
+  --destructive-soft: #fdecee;
+
+  --border: #e4e8f0;
+  --border-strong: #cfd6e4;
+  --input: #d8dfea;
   --ring: #1806a1;
 
+  --status-pending: #7a8598;
+  --status-pending-soft: #eef1f6;
+  --status-pending-fg: #4c5668;
+
+  --status-progress: #1806a1;
+  --status-progress-soft: #ebe9fb;
+  --status-progress-fg: #2a1aae;
+
+  --status-review: #d98500;
+  --status-review-soft: #fdf3e0;
+  --status-review-fg: #8a5400;
+
+  --status-done: #0f9d6e;
+  --status-done-soft: #e2f6ef;
+  --status-done-fg: #0a6b4c;
+
   --chart-1: #de182c;
-  --chart-2: #07f0e4;
-  --chart-3: #1806a1;
-  --chart-4: #ffd166;
-  --chart-5: #4caf50;
+  --chart-2: #1806a1;
+  --chart-3: #07d6cc;
+  --chart-4: #d98500;
+  --chart-5: #0f9d6e;
 
-  --radius: 0.875rem;
+  --radius: 0.75rem;
 
-  /* Legacy sidebar tokens retained for component compatibility only */
   --sidebar: #ffffff;
-  --sidebar-foreground: #182033;
+  --sidebar-foreground: #101728;
   --sidebar-primary: #de182c;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f5f7fb;
-  --sidebar-accent-foreground: #182033;
-  --sidebar-border: #dce3ef;
+  --sidebar-accent: #f1f4f9;
+  --sidebar-accent-foreground: #101728;
+  --sidebar-border: #e4e8f0;
   --sidebar-ring: #1806a1;
 }
 
 .dark {
-  --background: #ffffff;
-  --foreground: #182033;
-  --card: #ffffff;
-  --card-foreground: #182033;
-  --popover: #ffffff;
-  --popover-foreground: #182033;
-  --primary: #de182c;
+  --background: #0b1018;
+  --foreground: #e7ecf4;
+
+  --card: #141b27;
+  --card-foreground: #e7ecf4;
+  --popover: #161e2b;
+  --popover-foreground: #e7ecf4;
+
+  --primary: #f0364a;
+  --primary-hover: #d92438;
   --primary-foreground: #ffffff;
-  --secondary: #1806a1;
+  --primary-soft: #35141a;
+
+  --secondary: #7a6bff;
+  --secondary-hover: #6553f5;
   --secondary-foreground: #ffffff;
-  --accent: #07f0e4;
-  --accent-foreground: #101827;
-  --muted: #f5f7fb;
-  --muted-foreground: #647084;
-  --destructive: #de182c;
-  --border: #dce3ef;
-  --input: #cfd8e6;
-  --ring: #1806a1;
-  --chart-1: #de182c;
-  --chart-2: #07f0e4;
-  --chart-3: #1806a1;
-  --chart-4: #ffd166;
-  --chart-5: #4caf50;
-  --sidebar: #ffffff;
-  --sidebar-foreground: #182033;
-  --sidebar-primary: #de182c;
+  --secondary-soft: #1e1b3d;
+
+  --accent: #1e2736;
+  --accent-foreground: #e7ecf4;
+  --brand-cyan: #22e0d5;
+  --brand-cyan-soft: #10332f;
+
+  --muted: #1a2331;
+  --muted-foreground: #9aa6ba;
+  --subtle: #111825;
+
+  --destructive: #f0364a;
+  --destructive-foreground: #ffffff;
+  --destructive-soft: #35141a;
+
+  --border: #243044;
+  --border-strong: #33415a;
+  --input: #2c3a52;
+  --ring: #7a6bff;
+
+  --status-pending: #8d97a9;
+  --status-pending-soft: #1d2634;
+  --status-pending-fg: #b4bdcd;
+
+  --status-progress: #7a6bff;
+  --status-progress-soft: #1e1b3d;
+  --status-progress-fg: #b3a9ff;
+
+  --status-review: #f0a92b;
+  --status-review-soft: #33240c;
+  --status-review-fg: #f5c675;
+
+  --status-done: #2bc491;
+  --status-done-soft: #0f2f26;
+  --status-done-fg: #74dcb9;
+
+  --sidebar: #141b27;
+  --sidebar-foreground: #e7ecf4;
+  --sidebar-primary: #f0364a;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f5f7fb;
-  --sidebar-accent-foreground: #182033;
-  --sidebar-border: #dce3ef;
-  --sidebar-ring: #1806a1;
+  --sidebar-accent: #1a2331;
+  --sidebar-accent-foreground: #e7ecf4;
+  --sidebar-border: #243044;
+  --sidebar-ring: #7a6bff;
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring/40;
   }
 
   html {
     @apply font-sans;
+    -webkit-tap-highlight-color: transparent;
+    scrollbar-gutter: stable;
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    text-rendering: optimizeLegibility;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-heading tracking-tight;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  ::selection {
+    background-color: color-mix(in oklab, var(--secondary) 18%, transparent);
+  }
+
+  /* Quiet scrollbars — the app has several nested scroll regions. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--border-strong);
+    border: 3px solid transparent;
+    background-clip: content-box;
+    border-radius: 999px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: var(--muted-foreground);
+    background-clip: content-box;
+  }
+}
+
+@layer utilities {
+  /* Used by the message thread and the board so their inner scroll areas
+     fill the viewport without fighting the sticky app chrome. */
+  .h-app-panel {
+    height: calc(100svh - 12.5rem);
+  }
+
+  @media (min-width: 1024px) {
+    .h-app-panel {
+      height: calc(100svh - 9.5rem);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

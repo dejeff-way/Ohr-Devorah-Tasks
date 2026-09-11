@@ -1,19 +1,29 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { ArrowLeft, Loader2, LogOut, Megaphone, MessageSquare, Send, Trash2, Users } from 'lucide-react';
+
 import { createClient } from '@/lib/supabase/client';
-import { loadMessages, sendMessage, markRead, leaveConversation } from '../actions';
-import type { Message, Conversation } from '@/types/messages';
+import { leaveConversation, loadMessages, markRead, sendMessage } from '../actions';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  ArrowLeft,
-  Send,
-  Trash2,
-  LogOut,
-  Loader2,
-} from 'lucide-react';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { EmptyState } from '@/components/ui/empty-state';
+import { PageLoader } from '@/components/ui/spinner';
+import { UserAvatar } from '@/components/user-avatar';
+import { cn } from '@/lib/utils';
+import type { Conversation, Message } from '@/types/messages';
+import type { User } from '@/types/task';
+
+/** Shape of the `conversation_participants` -> `users` join used below. */
+type ParticipantRow = { user?: Pick<User, 'id' | 'name' | 'role'> | null };
 import { toast } from 'sonner';
 
 export default function ChatPage({
@@ -32,6 +42,7 @@ export default function ChatPage({
   const [sending, setSending] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [leaveOpen, setLeaveOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const prevMessageCountRef = useRef(0);
 
@@ -61,19 +72,19 @@ export default function ChatPage({
           .from('conversation_participants')
           .select('user:user_id(id, name, role)')
           .eq('conversation_id', convId);
+        const rows = (participants ?? []) as unknown as ParticipantRow[];
         setConversation({
           ...convData,
-          participants: (participants || []).map((p: any) => ({
-            ...p,
-            user_id: p.user?.id,
-            user: p.user,
-          })),
+          participants: rows.map((row) => ({
+            ...row,
+            user_id: row.user?.id ?? '',
+            user: row.user,
+          })) as Conversation['participants'],
         });
       }
     }
   }, [supabase, convId, conversation]);
 
-  // Initialize — resolve params first, then subscribe
   useEffect(() => {
     let cancelled = false;
 
@@ -99,7 +110,6 @@ export default function ChatPage({
     return () => { cancelled = true; };
   }, [params, supabase, router, fetchMessages]);
 
-  // Start realtime only AFTER convId is known (prevents empty filter subscription)
   useEffect(() => {
     if (!convId || !currentUserId) return;
 
@@ -119,7 +129,6 @@ export default function ChatPage({
           if (cancelled) return;
           const newMsg = payload.new as Message;
 
-          // If this is our own message, replace the optimistic one
           setMessages((prev) => {
             const optimisticIdx = prev.findIndex(
               (m) => !m.id && m.sender_id === currentUserId && m.content === newMsg.content
@@ -129,7 +138,6 @@ export default function ChatPage({
               updated[optimisticIdx] = newMsg;
               return updated;
             }
-            // Someone else's message
             return [...prev, newMsg];
           });
 
@@ -144,7 +152,6 @@ export default function ChatPage({
     };
   }, [convId, currentUserId, supabase]);
 
-  // Auto-scroll to bottom on new messages
   useEffect(() => {
     if (messages.length > prevMessageCountRef.current) {
       bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -160,7 +167,6 @@ export default function ChatPage({
     setSending(true);
     setNewMessage('');
 
-    // Optimistic insert
     const optimistic: Message = {
       id: '',
       conversation_id: convId,
@@ -182,7 +188,6 @@ export default function ChatPage({
       toast.error(result.error);
       setMessages((prev) => prev.filter((m) => m !== optimistic));
     }
-    // Realtime will replace the optimistic message with the real one
 
     setSending(false);
   }
@@ -217,9 +222,7 @@ export default function ChatPage({
   function getConversationTitle() {
     if (conversation?.title) return conversation.title;
     if (conversation?.type === 'broadcast') return 'Staff Broadcast';
-    const others = conversation?.participants?.filter(
-      (p) => p.user_id !== currentUserId
-    );
+    const others = conversation?.participants?.filter((p) => p.user_id !== currentUserId);
     if (others && others.length > 0) {
       return others.map((p) => p.user?.name).join(', ');
     }
@@ -227,8 +230,7 @@ export default function ChatPage({
   }
 
   function formatMessageTime(ts: string) {
-    const d = new Date(ts);
-    return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    return new Date(ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   }
 
   function formatMessageDate(ts: string) {
@@ -246,11 +248,7 @@ export default function ChatPage({
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-foreground" />
-      </div>
-    );
+    return <PageLoader label="Opening conversation" />;
   }
 
   const dateGroups: { date: string; messages: Message[] }[] = [];
@@ -264,68 +262,96 @@ export default function ChatPage({
     }
   }
 
+  const title = getConversationTitle();
+  const isBroadcast = conversation?.type === 'broadcast';
+
   return (
-    <div className="flex flex-col overflow-hidden" style={{ height: 'calc(100vh - 10rem)' }}>
-      {/* Header — fixed at top */}
-      <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b-2 border-border bg-card rounded-t-xl">
-        <button
+    <div className="mx-auto flex h-app-panel max-w-3xl flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+      {/* ---------------- Header ---------------- */}
+      <div className="flex shrink-0 items-center gap-3 border-b border-border px-3 py-2.5 sm:px-4">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Back to messages"
           onClick={() => router.push('/dashboard/messages')}
-          className="p-1.5 rounded-xl hover:bg-muted text-muted-foreground transition-colors"
         >
-          <ArrowLeft size={18} />
-        </button>
-        <div className="flex-1 min-w-0">
-          <h2 className="text-sm font-extrabold text-foreground truncate">
-            {getConversationTitle()}
-          </h2>
-          {conversation?.type === 'group' && (
-            <p className="text-xs font-semibold text-muted-foreground">
-              {conversation.participants?.length ?? 0} members
-            </p>
-          )}
+          <ArrowLeft size={17} />
+        </Button>
+
+        {isBroadcast ? (
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-status-review-soft text-status-review-fg">
+            <Megaphone size={16} />
+          </span>
+        ) : (
+          <UserAvatar name={title} size="md" />
+        )}
+
+        <div className="min-w-0 flex-1 leading-tight">
+          <h2 className="truncate text-sm font-bold text-foreground">{title}</h2>
+          <p className="flex items-center gap-1 text-xs text-muted-foreground">
+            {conversation?.type === 'group' ? (
+              <>
+                <Users size={11} />
+                {conversation.participants?.length ?? 0} members
+              </>
+            ) : isBroadcast ? (
+              'Everyone on staff'
+            ) : (
+              'Direct message'
+            )}
+          </p>
         </div>
-        {conversation?.type !== 'broadcast' && (
-          <button
-            onClick={handleLeave}
-            className="p-1.5 rounded-xl hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors"
+
+        {!isBroadcast && (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setLeaveOpen(true)}
             title="Leave conversation"
+            aria-label="Leave conversation"
+            className="hover:bg-destructive-soft hover:text-destructive"
           >
             <LogOut size={16} />
-          </button>
+          </Button>
         )}
       </div>
 
-      {/* Messages — scrollable fill */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-4">
+      {/* ---------------- Messages ---------------- */}
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-subtle px-3 py-4 sm:px-4">
         {hasMore && (
-          <div className="text-center pb-2">
+          <div className="pb-1 text-center">
             <Button
               variant="outline"
               size="sm"
+              disabled={loadingMore}
               onClick={async () => {
                 setLoadingMore(true);
                 const oldest = messages[0];
                 await fetchMessages(oldest?.created_at);
                 setLoadingMore(false);
               }}
-              disabled={loadingMore}
             >
-              {loadingMore ? (
-                <Loader2 size={14} className="mr-1.5 animate-spin" />
-              ) : null}
+              {loadingMore && <Loader2 size={14} className="animate-spin" />}
               Load older messages
             </Button>
           </div>
         )}
 
+        {messages.length === 0 && (
+          <EmptyState
+            icon={MessageSquare}
+            title="No messages yet"
+            description="Say something to get the thread started."
+            className="border-none bg-transparent"
+          />
+        )}
+
         {dateGroups.map((group) => (
-          <div key={group.date} className="space-y-1">
-            <div className="flex items-center gap-3 my-3">
-              <div className="flex-1 h-px bg-border" />
-              <span className="text-[11px] font-extrabold text-muted-foreground">
+          <div key={group.date} className="space-y-1.5">
+            <div className="sticky top-0 z-10 flex justify-center py-1">
+              <span className="rounded-full border border-border bg-card px-2.5 py-0.5 text-[11px] font-bold text-muted-foreground shadow-xs">
                 {group.date}
               </span>
-              <div className="flex-1 h-px bg-border" />
             </div>
 
             {group.messages.map((msg, i) => {
@@ -336,66 +362,60 @@ export default function ChatPage({
 
               return (
                 <div
-                  key={msg.id || i}
-                  className={`flex gap-2 ${isMine ? 'justify-end' : 'justify-start'}`}
+                  key={msg.id || `optimistic-${i}`}
+                  className={cn('flex gap-2', isMine ? 'justify-end' : 'justify-start')}
                 >
-                  {!isMine && showAvatar ? (
-                    <div className="flex-shrink-0 mt-1">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary text-[11px] font-extrabold text-secondary-foreground">
-                        {senderName.charAt(0)}
-                      </div>
-                    </div>
-                  ) : !isMine ? (
-                    <div className="w-7 flex-shrink-0" />
-                  ) : null}
+                  {/* Own messages carry no avatar: there is no sender record on
+                      an optimistic send, which used to render "U" for Unknown. */}
+                  {!isMine &&
+                    (showAvatar ? (
+                      <UserAvatar name={senderName} size="xs" className="mt-1" />
+                    ) : (
+                      <span className="w-6 shrink-0" />
+                    ))}
 
                   <div
-                    className={`group relative max-w-[75%] rounded-2xl px-3.5 py-2 ${
+                    className={cn(
+                      'group relative max-w-[78%] rounded-2xl px-3.5 py-2 shadow-xs',
                       isMine
-                        ? 'bg-primary text-primary-foreground rounded-br-md'
-                        : 'bg-muted text-foreground rounded-bl-md'
-                    }`}
+                        ? 'rounded-br-sm bg-secondary text-secondary-foreground'
+                        : 'rounded-bl-sm border border-border bg-card text-foreground'
+                    )}
                   >
                     {!isMine && showAvatar && (
-                      <p className="text-[11px] font-extrabold text-secondary mb-0.5">
+                      <p className="mb-0.5 text-[11px] font-bold text-muted-foreground">
                         {senderName}
                       </p>
                     )}
-                    <p className="text-sm whitespace-pre-wrap break-words">
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
                       {msg.content}
                     </p>
                     <div
-                      className={`flex items-center gap-1 mt-1 ${
+                      className={cn(
+                        'mt-1 flex items-center gap-1.5',
                         isMine ? 'justify-end' : 'justify-start'
-                      }`}
+                      )}
                     >
                       <span
-                        className={`text-[10px] ${
-                          isMine ? 'text-primary-foreground/60' : 'text-muted-foreground'
-                        }`}
+                        className={cn(
+                          'text-[10px] tabular-nums',
+                          isMine ? 'text-secondary-foreground/65' : 'text-muted-foreground'
+                        )}
                       >
                         {formatMessageTime(msg.created_at)}
                       </span>
                       {isMine && msg.id && (
                         <button
+                          type="button"
+                          aria-label="Delete message"
                           onClick={() => handleDelete(msg.id)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity text-primary-foreground/40 hover:text-primary-foreground/80"
+                          className="text-secondary-foreground/50 opacity-0 transition-opacity hover:text-secondary-foreground focus-visible:opacity-100 group-hover:opacity-100"
                         >
                           <Trash2 size={12} />
                         </button>
                       )}
                     </div>
                   </div>
-
-                  {isMine && showAvatar ? (
-                    <div className="flex-shrink-0 mt-1">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-[11px] font-extrabold text-primary-foreground">
-                        {senderName.charAt(0)}
-                      </div>
-                    </div>
-                  ) : isMine ? (
-                    <div className="w-7 flex-shrink-0" />
-                  ) : null}
                 </div>
               );
             })}
@@ -405,31 +425,50 @@ export default function ChatPage({
         <div ref={bottomRef} />
       </div>
 
-      {/* Input — fixed at bottom */}
-      <div className="flex-shrink-0 px-4 py-3 border-t-2 border-border bg-card rounded-b-xl">
-        <div className="flex gap-2 items-end">
+      {/* ---------------- Composer ---------------- */}
+      <div className="shrink-0 border-t border-border px-3 py-3 sm:px-4">
+        <div className="flex items-end gap-2">
           <Textarea
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type a message..."
-            className="min-h-[44px] max-h-32 resize-none"
+            placeholder="Write a message…  (Enter to send, Shift+Enter for a new line)"
+            className="max-h-32 min-h-11 resize-none py-2.5"
             rows={1}
+            aria-label="Message"
           />
           <Button
             onClick={handleSend}
             disabled={!newMessage.trim() || sending}
             size="icon"
-            className="flex-shrink-0 h-11 w-11"
+            aria-label="Send message"
+            className="size-11 shrink-0"
           >
-            {sending ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <Send size={16} />
-            )}
+            {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
           </Button>
         </div>
       </div>
+
+      {/* ---------------- Leave confirmation ---------------- */}
+      <Dialog open={leaveOpen} onOpenChange={setLeaveOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Leave conversation</DialogTitle>
+            <DialogDescription>
+              You will stop receiving messages from &ldquo;{title}&rdquo; and it will disappear
+              from your list.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setLeaveOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleLeave}>
+              Leave
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

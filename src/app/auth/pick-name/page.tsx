@@ -1,12 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Check, Loader2, UserX } from 'lucide-react';
+
 import { createClient } from '@/lib/supabase/client';
 import { claimStaffSlot } from '@/app/auth/actions';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { PageLoader } from '@/components/ui/spinner';
 import { Toaster } from '@/components/ui/sonner';
+import { UserAvatar } from '@/components/user-avatar';
 import { toast } from 'sonner';
 
 type StaffSlot = {
@@ -30,7 +34,6 @@ export default function PickNamePage() {
         return;
       }
 
-      // Check if user already has a name
       const { data: profile } = await supabase
         .from('users')
         .select('name')
@@ -42,7 +45,6 @@ export default function PickNamePage() {
         return;
       }
 
-      // Load available slots
       const { data: allSlots } = await supabase
         .from('staff_slots')
         .select('id, name')
@@ -50,13 +52,10 @@ export default function PickNamePage() {
 
       if (allSlots) setSlots(allSlots);
 
-      // Find which names are already taken
-      const { data: allUsers } = await supabase
-        .from('users')
-        .select('name');
+      const { data: allUsers } = await supabase.from('users').select('name');
 
       if (allUsers) {
-        setTakenNames(allUsers.map(u => u.name).filter(Boolean));
+        setTakenNames(allUsers.map((u) => u.name).filter(Boolean));
       }
 
       setLoading(false);
@@ -77,15 +76,15 @@ export default function PickNamePage() {
     if (result.error) {
       toast.error(result.error);
     } else {
-      toast.success(`You are now ${result.name}!`);
+      toast.success(`You are now ${result.name}`);
       router.push('/dashboard');
     }
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-foreground" />
+      <div className="min-h-svh bg-background">
+        <PageLoader label="Loading" className="min-h-svh" />
       </div>
     );
   }
@@ -93,49 +92,57 @@ export default function PickNamePage() {
   const availableSlots = slots.filter((s) => !takenNames.includes(s.name));
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-8">
+    <div className="flex min-h-svh items-center justify-center bg-background px-4 py-10">
       <Toaster richColors position="top-center" />
-      <Card className="w-full max-w-xl border-4 border-secondary p-2">
-        <CardHeader className="text-center pb-4">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-primary">
-            <span className="text-2xl font-extrabold text-primary-foreground">OD</span>
-          </div>
-          <CardTitle className="text-3xl font-extrabold tracking-tight text-foreground">
+
+      <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-lg sm:p-8">
+        <div className="mb-7 text-center">
+          <span className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-primary text-lg font-extrabold text-primary-foreground shadow-sm">
+            OD
+          </span>
+          <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
             Welcome to Ohr Devora
-          </CardTitle>
-          <CardDescription className="text-base font-semibold text-muted-foreground">
-            Pick your staff name to get started. This will be your identity in the system.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {availableSlots.length === 0 ? (
-            <div className="text-center py-6">
-              <p className="text-sm text-muted-foreground mb-4">
-                All staff names have been taken. Contact an admin to add more.
-              </p>
-            </div>
-          ) : (
-            <div className="grid gap-2">
-              {availableSlots.map((slot) => (
-                <Button
-                  key={slot.id}
-                  variant="outline"
-                  onClick={() => handleClaim(slot)}
-                  disabled={claiming === slot.id}
-                  className="w-full justify-start text-left h-auto py-4 px-4 border-2 border-border hover:border-primary hover:bg-muted"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-sm font-medium text-secondary">
-                      {slot.name.charAt(0)}
-                    </div>
-                    <span className="font-medium text-foreground">{slot.name}</span>
-                  </div>
-                </Button>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          </h1>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            Choose your staff name. This is how you will appear on tasks and messages, so
+            pick carefully — you only do this once.
+          </p>
+        </div>
+
+        {availableSlots.length === 0 ? (
+          <EmptyState
+            icon={UserX}
+            title="Every name has been claimed"
+            description="Ask an administrator to add a new name slot for you, then reload this page."
+          />
+        ) : (
+          <ul className="grid gap-2">
+            {availableSlots.map((slot) => {
+              const isClaiming = claiming === slot.id;
+              return (
+                <li key={slot.id}>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleClaim(slot)}
+                    disabled={claiming !== null}
+                    className="h-auto w-full justify-start gap-3 px-3 py-3 text-left"
+                  >
+                    <UserAvatar name={slot.name} size="sm" />
+                    <span className="flex-1 text-sm font-semibold text-foreground">
+                      {slot.name}
+                    </span>
+                    {isClaiming ? (
+                      <Loader2 size={15} className="animate-spin text-muted-foreground" />
+                    ) : (
+                      <Check size={15} className="text-muted-foreground opacity-0" />
+                    )}
+                  </Button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
